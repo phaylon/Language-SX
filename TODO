@@ -1,0 +1,100 @@
+
+    ;
+    ; comments
+    ;
+
+    ; simple quoting
+    '(foo (bar))
+
+    ; var scoping
+    (let ((x 3)
+          (y 4))
+         (+ x y))
+
+    ; use [] as synonym for () instead
+    (let [(x 3) (y 4)] (+ x y))
+
+    ; lambda
+    (lambda (x y) (+ x y))
+
+    ; single value lambda
+    (-> (* _ 2))
+
+    ; defintions
+    (define foo 23)
+
+    ; booleans
+    (let ((one #t) (undef #f)) ...)
+
+    ; keywords
+    (perlfunction :foo) ; string
+    (obj :method arg1)  ; keyword
+
+    ; data access
+    (at hash :foo)
+    (at array 0)
+    (at deep :foo 3 :bar)
+
+    ; setting
+    (set! x 23)
+    (set! (at hash :foo) 23)
+
+    ; io
+    (with-input-from *stdin*
+      (with-output-to *stdout*
+        (print (read))))
+    (say foo)
+
+    ; quoting
+    (quote foo)
+    (quasiquote foo)
+    (unquote foo)
+    (unquote-splicing foo)
+
+    ; list ops
+    (map ls f)
+    (grep ls f)
+    (first ls f)
+    (hash-map hs f)
+    (hash-grep hs f)
+    (hash->pairs h)
+    (pairs->hash ps)
+    (list ...)
+    (hash ...)
+
+    ; conditionals
+    (if cond then else)
+    (cond ((if1 then1)
+           (if2 => then2withresult)))
+    (if-value foo
+      (== (1 "one")
+          (2 "two")
+          (3 "hree"))
+      (<  (10 "not ten")
+          (20 "not twenty"))
+      (else "twenty or more"))
+    
+    ; predicates and introspection
+    (object? foo)
+    (hash? bar)
+    (list? baz)
+    (empty? ...)
+
+
+    ; recursion
+    (let-named (foo x)
+      (if (== x 0)
+        (say "zero")
+        (foo (-1 x))))
+
+    ; modules
+    (module exports '(foo bar))
+    (import "foo.sx" '(foo bar))
+    (include "bar.inc.sx")
+
+
+
+
+
+
+
