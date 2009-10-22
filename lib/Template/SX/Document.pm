@@ -7,6 +7,8 @@ class Template::SX::Document
     use Template::SX::Types     qw( :all );
     use MooseX::Types::Moose    qw( ArrayRef Object Bool Str );
 
+    Class::MOP::load_class(E_INTERNAL);
+
     has start_scope => (
         is          => 'ro',
         isa         => Scope,
@@ -31,7 +33,7 @@ class Template::SX::Document
     method compile () {
         require Template::SX::Inflator;
 
-        my $inflator = Template::SX::Inflator->new_with_traits(
+        my $inflator = Template::SX::Inflator->new_with_resolved_traits(
             libraries => [$self->all_libraries],
         );
 
@@ -54,14 +56,19 @@ class Template::SX::Document
 
     method new_node_from_stream (Object $stream, Token $token) {
 
-        my ($type, $value) = @$token;
+        my ($type, $value, $location) = @$token;
 
-        my $method  = $type . '_handler_class';
+        my $method = $self->can($type . '_handler_class')
+            or E_INTERNAL->throw(
+                message     => "cannot handle $type token in stream",
+                location    => $location,
+            );
+
         my $handler = $self->$method;
 
         Class::MOP::load_class($handler);
 
-        return $handler->new_from_stream($self, $stream, $value);
+        return $handler->new_from_stream($self, $stream, $value, $location);
     }
 
     method cell_open_handler_class  () { join '::', __PACKAGE__, 'Cell' }

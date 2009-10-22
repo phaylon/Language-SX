@@ -5,18 +5,16 @@ use MooseX::Types -declare => [qw(
     Scope
     Token
     LibraryList
+    PairList
+    Location
+    QuoteState
 )];
 
 use MooseX::Types::Structured qw(
     Tuple
+    Dict
 );
-use MooseX::Types::Moose qw(
-    Int
-    ArrayRef
-    Str
-    Any
-    Object
-);
+use MooseX::Types::Moose qw( :all );
 
 use Template::SX::Constants qw(
     SCOPE_STRUCTURAL
@@ -25,11 +23,13 @@ use Template::SX::Constants qw(
 
 use namespace::clean -except => 'import';
 
-subtype Offset, as Int, where { $_ >= 0 };
+subtype Offset, 
+     as Int, 
+  where { $_ >= 0 };
+
+enum QuoteState, qw( quasi full );
 
 enum Scope, SCOPE_FUNCTIONAL, SCOPE_STRUCTURAL;
-
-subtype Token, as Tuple[Str, Any];
 
 class_type $_ for map "Template::SX::$_", qw(
     Document
@@ -37,7 +37,23 @@ class_type $_ for map "Template::SX::$_", qw(
     Library
 );
 
+role_type $_ for map "Template::SX::$_", qw(
+    Document::Locatable
+);
+
 subtype LibraryList, as ArrayRef[Object];
+
+subtype PairList, as ArrayRef, where { @$_ == 2 };
+
+subtype Location, as Dict[
+    source  => Str, 
+    line    => Int, 
+    char    => Int, 
+    context => Str,
+    offset  => Int,
+];
+
+subtype Token, as Tuple[Str, Any, Location];
 
 my $CoerceLib = sub {
     my $str = shift;

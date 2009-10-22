@@ -10,6 +10,9 @@ use constant {
     CELL_NORMAL         => '(',
     CELL_SQUARE         => '[',
     CELL_CURLY          => '{',
+
+    QUOTE_FULL          => 'full',
+    QUOTE_QUASI         => 'quasi',
 };
 
 use constant {
@@ -19,6 +22,15 @@ use constant {
     CELL_HASH           => CELL_CURLY,
     CELL_NODE           => CELL_NORMAL,
     CELL_NODE_ATTRSET   => CELL_CURLY,
+};
+
+use constant {
+
+    E_SYNTAX            => 'Template::SX::Exception::Syntax',
+    E_RESERVED          => 'Template::SX::Exception::Syntax::Reserved',
+    E_UNBOUND           => 'Template::SX::Exception::UnboundVar',
+    E_INTERNAL          => 'Template::SX::Exception::Internal',
+    E_TYPE              => 'Template::SX::Exception::Type',
 };
 
 use Sub::Exporter -setup => {
@@ -36,6 +48,15 @@ use Sub::Exporter -setup => {
         CELL_HASH
         CELL_NODE
         CELL_NODE_ATTRSET
+
+        E_SYNTAX
+        E_INTERNAL
+        E_UNBOUND
+        E_RESERVED
+        E_TYPE
+
+        QUOTE_FULL
+        QUOTE_QUASI
     )],
 };
 

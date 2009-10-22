@@ -1,16 +1,19 @@
 use MooseX::Declare;
 
 class Template::SX::Document::Cell 
-    extends Template::SX::Document::Container {
+    extends Template::SX::Document::Container 
+    with    Template::SX::Document::Locatable {
 
     use Template::SX::Constants qw( :all );
     use Template::SX::Types     qw( :all );
-    
+    use Data::Dump              qw( pp );
 
     my @Pairs     = qw/ ( ) [ ] { } /;
     my %OpenerFor = reverse @Pairs;
     my %CloserFor = @Pairs;
+    my %Name      = qw/ ( normal ) normal [ square ] square { curly } curly /;
 
+    Class::MOP::load_class(E_SYNTAX);
 
     method compile (Object $inf, Scope $scope) {
 
@@ -33,12 +36,14 @@ class Template::SX::Document::Cell
         ClassName $class: 
             Object   $doc, 
             Object   $stream, 
-            Str      $value
+            Str      $value,
+            Location $loc
     ) {
         
-        my $self = $class->new_from_value($value);
+        my $self = $class->new_from_value($value, $loc);
 
         while (my $token = $stream->next_token) {
+            my ($token_type, $token_value, $token_location) = @$token;
 
             if ($self->_is_closing($token->[1])) {
 
@@ -48,27 +53,38 @@ class Template::SX::Document::Cell
                 }
                 else {
 
-                    # FIXME throw exception
-                    die "Expected closing $value, not $token->[1]";
+                    E_SYNTAX->throw(
+                        message  => sprintf(
+                            q(expected cell to be closed with '%s' (%s), not '%s' (%s)), 
+                            $CloserFor{ $value }, 
+                            $Name{ $value },
+                            $token->[1],
+                            $Name{ $token->[1] },
+                        ),
+                        location => $token_location,
+                    );
                 }
             }
 
             $self->add_node(my $node = $doc->new_node_from_stream($stream, $token));
         }
 
-        # FIXME throw exception
-        die "Expected closing $value, not end of stream";
+        E_SYNTAX->throw(
+            location => $loc,
+            message  => 'unexpected end of stream before cell was closed',
+        );
     }
 
-    method new_from_value (ClassName $class: Str $value) {
+    method new_from_value (ClassName $class: Str $value, Location $loc) {
 
-        # FIXME throw exception
         my $specific_class = $class->_find_class($value)
-            or die "Cell opener '$value' is invalid\n";
+            or E_SYNTAX->throw(
+                location    => $loc,
+                message     => sprintf(q(invalid cell opener '%s'), $value),
+            );
 
         Class::MOP::load_class($specific_class);
-
-        return $specific_class->new;
+        return $specific_class->new(location => $loc);
     }
 
     method _find_class (ClassName $class: Str $value) {

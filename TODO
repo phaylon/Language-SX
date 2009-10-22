@@ -1,71 +1,105 @@
 
-    ;
-    ; comments
-    ;
+BASIC:
 
-    ; simple quoting
-    '(foo (bar))
-
-    ; var scoping
-    (let ((x 3)
-          (y 4))
-         (+ x y))
-
-    ; use [] as synonym for () instead
-    (let [(x 3) (y 4)] (+ x y))
-
-    ; lambda
-    (lambda (x y) (+ x y))
-
-    ; single value lambda
-    (-> (* _ 2))
-
-    ; defintions
-    (define foo 23)
-
-    ; booleans
-    (let ((one #t) (undef #f)) ...)
-
-    ; keywords
-    (perlfunction :foo) ; string
-    (obj :method arg1)  ; keyword
-
-    ; data access
-    (at hash :foo)
-    (at array 0)
-    (at deep :foo 3 :bar)
-
-    ; setting
+    quoting
+    hash
+    array
+    /foo\/bar/
+    (let
+    (let*
+    (let-rec
+    (define (foo x y)
+    booleans
+    keywords
+    () equal to []
     (set! x 23)
-    (set! (at hash :foo) 23)
-
-    ; io
-    (with-input-from *stdin*
-      (with-output-to *stdout*
-        (print (read))))
-    (say foo)
-
-    ; quoting
-    (quote foo)
-    (quasiquote foo)
-    (unquote foo)
-    (unquote-splicing foo)
-
-    ; list ops
     (map ls f)
     (grep ls f)
+    (list ...)
+    (hash ...)
+    (cond ((if1 then1)
+           (if2 => then2withresult)))
+    (object? foo)
+    (hash? bar)
+    (list? baz)
+    (empty? ...) ; (), {}, '', undef
+    (join sep ls)
+    (split /\s+/ str)
+    (apply + x y (list y z))
+    (append ls1 ls2)
+    (== 1 2)
+    (eq? "x" "y")
+    < > <= >=
+    <=>
+    (sort ls fun)
+    and, and-def, 
+    or, or-def, 
+    not, not-def,
+    (any? '(1 2 3) odd?)
+    (all? '(2 3 4) (-> (< _ 10)))
+    (one? ls fun)
+    (none? ls fun)
     (first ls f)
     (hash-map hs f)
     (hash-grep hs f)
     (hash->pairs h)
     (pairs->hash ps)
-    (list ...)
-    (hash ...)
+    (flatten h1 h2 a1 a2)
+    (head ls)
+    (tail ls)
+    (zip fun ls1 ls2 ls3 ...)
+    (unzip ls fun)
+    (keys hs)
+    (keys ls)
+    (values hs)
+    (values ls)
+    (string s1 s2 s3 ...)
+    (partition ls fun-returning-str)
+    (reduce ls fun)
+    (unless cond then alter)
+    (begin ...)
+    (matches? /rx/ str)
+    (match /rx/ str)
+    (match-all /rx/ str)
+    (replace /rx/ fun str)
+    (curry fun 1 2 ...)
+    (rcurry fun 1 2 ...)
+    (uniq ls ...)
+    (gather (lambda (foo) (foo 5)))
+    (while defined? (row (rs :next))
+      (say (at row :name)))
+    turn () '() [] '[] into empty list
+    (meta-of obj)
+    λ
+    (min ...)
+    (max ...)
+    (env 'HOME)
+    
+    ; should work
+    ; die if reserved var name passed in
+    (let ((let 23))
+      (+ let let))
 
-    ; conditionals
-    (if cond then else)
-    (cond ((if1 then1)
-           (if2 => then2withresult)))
+
+
+
+EXTENDED
+
+    (# ...)
+    (-> (* _ 2))
+    (at hash :foo 0)            ; getter, returns accessor handler for set!
+    (set! (at ...) ...          ; setter
+    (with-input-from *in* ...)
+    (with-output-to *out* ...)
+    (with-errors-to *err* ...)
+    (with-input-from-string str ...)
+    (with-output-to-string str ...)
+    (with-error-to-string str ...)
+    (with-default-input ...)
+    (with-default-output ...)
+    (say ...)
+    (print ...)
+    (read ...)
     (if-value foo
       (== (1 "one")
           (2 "two")
@@ -73,24 +107,18 @@
       (<  (10 "not ten")
           (20 "not twenty"))
       (else "twenty or more"))
-    
-    ; predicates and introspection
-    (object? foo)
-    (hash? bar)
-    (list? baz)
-    (empty? ...)
-
-
-    ; recursion
     (let-named (foo x)
       (if (== x 0)
         (say "zero")
         (foo (-1 x))))
-
-    ; modules
-    (module exports '(foo bar))
     (import "foo.sx" '(foo bar))
     (include "bar.inc.sx")
+    (module "foo/bar" (exports foo bar) (receives baz qux))
+    (export foo bar)
+    (lambda-case
+      ((x) x)
+      ((x y) (+ x y))
+      (args (apply * args)))
 
 
 
@@ -98,3 +126,12 @@
 
 
 
+
+
+
+
+
+
+
+
+    

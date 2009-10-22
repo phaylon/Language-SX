@@ -12,7 +12,7 @@ role Template::SX::Trait::CompileTidy {
             source      => \$code,
             destination => \$tidy,
             perltidyrc  => \q{
-                -l=78
+                -l=98
                 -i=2
                 -bar
                 -nicp

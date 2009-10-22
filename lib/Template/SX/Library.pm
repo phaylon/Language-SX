@@ -12,8 +12,32 @@ class Template::SX::Library {
         handles     => {
             add_functions   => 'set',
             get_functions   => 'get',
-            has_function    => 'exists',
+            _has_function   => 'exists',
             function_names  => 'keys',
         },
     );
+
+    class_has syntax_map => (
+        traits      => [qw( Hash )],
+        isa         => HashRef[CodeRef],
+        default     => sub { {} },
+        handles     => {
+            add_syntax      => 'set',
+            get_syntax      => 'get',
+            _has_syntax     => 'exists',
+            syntax_names    => 'keys',
+        },
+    );
+
+    method has_function (Str $name) {
+        return undef unless $self->_has_function($name);
+        return $self;
+    }
+
+    method has_syntax (Str $name) {
+        return undef unless $self->_has_syntax($name);
+        return $self;
+    }
+
+    method additional_inflator_traits { () }
 }

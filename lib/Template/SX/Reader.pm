@@ -8,9 +8,7 @@ class Template::SX::Reader {
         my $stream = Template::SX::Reader::Stream->new(content => $string);
 
         require Template::SX::Document;
-        my $doc = Template::SX::Document->new_from_stream(
-            $stream,
-        );
+        my $doc = Template::SX::Document->new_from_stream($stream);
 
         return $doc;
     }

@@ -6,6 +6,8 @@ class Template::SX::Reader::Stream {
     use Template::SX::Types     qw( Offset Scope );
     use MooseX::Types::Moose    qw( Str Int );
 
+    Class::MOP::load_class(E_SYNTAX);
+
     has content => (
         traits      => [qw( String )],
         is          => 'ro',
@@ -29,25 +31,105 @@ class Template::SX::Reader::Stream {
         },
     );
 
+    my $AnonSource = 0;
+
+    has source_name => (
+        is          => 'rw',
+        isa         => Str,
+        required    => 1,
+        default     => sub { sprintf '(SX:%d)', $AnonSource++ },
+    );
+
+    method substream (Int :$offset) {
+
+        return $self->meta->clone_object($self,
+            offset      => $offset,
+            content     => $self->content,
+            source_name => $self->source_name,
+        );
+    }
+
+    method set_from_stream (Object :$stream) {
+
+        $self->offset( $stream->offset );
+    }
+
+    method content_line_count {
+        my @lines = split /\n/, $self->content;
+        return scalar @lines;
+    }
+
+    method content_rest_line_count {
+        my @lines = split /\n/, $self->content_rest;
+        return scalar @lines;
+    }
+
+    method current_line {
+
+        return( 
+            ($self->content_line_count - $self->content_rest_line_count) 
+            + 1 
+        );
+    }
+
+    method current_location {
+
+        return +{
+            source  => $self->source_name,
+            line    => $self->current_line,
+            char    => $self->current_char,
+            context => $self->current_line_content,
+            offset  => $self->offset,
+        };
+    }
+
+    method current_char {
+
+        my $last_nl = rindex $self->content, "\n", $self->offset;
+
+        if ($last_nl < 0) {
+            return $self->offset + 1;
+        }
+        else {
+            return( ($self->offset - $last_nl) + 1 );
+        }
+    }
+
+    method current_line_content () {
+
+        my $line = ( ( split /\n/, $self->content )[ $self->current_line - 1 ] );
+        chomp $line;
+
+        return $line;
+    }
+
     method content_rest () { 
-        
         return $self->content_substr($self->offset);
     }
 
     method content_rest_length () {
-
         return $self->content_length - $self->offset;
     }
 
     method end_of_stream () {
-
         return $self->content_rest_length == 0;
     }
 
     method skip_spaces () {
-#        warn "skipping spaces";
 
-        if ($self->content_rest =~ /^(\s+)/) {
+        my $rx = qr/
+            (?:
+                \A
+                \s*
+                (?:
+                    ;
+                    .*?
+                    $
+                )?
+            )
+        /xm;
+
+        if ($self->content_rest =~ /\A ($rx+) /x) {
             $self->skip(length $1);
         }
 
@@ -71,7 +153,7 @@ class Template::SX::Reader::Stream {
             ^
             ($rx)
             (?:
-                (?= \) | \] | \} | \s )
+                (?= \) | \] | \} | \s | ; )
               | $
             )
         /x;
@@ -95,20 +177,24 @@ class Template::SX::Reader::Stream {
             return undef;
         }
 
+        my $location = $self->current_location;
+
         for my $type ($self->token_precedence) {
 
             my $method = "_parse_${type}";
 
             if (my $found = $self->$method) {
 
-                $self->skip_spaces;
+ #               $self->skip_spaces;
 
-                return $found;
+                return [ @$found, $location ];
             }
         }
 
-        # FIXME throw exception instead
-        die "Unable to parse: " . $self->content_rest;
+        E_SYNTAX->throw(
+            location    => $location,
+            message     => 'unable to parse rest of stream',
+        );
     }
 
     method to_tokens () {
@@ -148,11 +234,17 @@ class Template::SX::Reader::Stream {
 
         my @not_allowed = (qw/
             { } ( ) [ ]
-             . ` @ %
+            ` @ % " ' ;
         /, ',');
 
-        my $rx_na = join ' ', map("(?! $_ )", '\s', map("\Q$_\E", @not_allowed));
-        my $rx = qr/ (?: $rx_na . )+ /x;
+        my $rx_join = sub { join ' ', map("(?! $_ )", '\s', map("\Q$_\E", @_)) };
+
+        my $rx_na   = $rx_join->(@not_allowed);
+        my $rx_beg  = $rx_join->(@not_allowed, 0..9);
+        my $rx      = qr/ 
+            (?: $rx_beg . ) 
+            (?: $rx_na  . )* 
+        /x;
 
         my $rx_old = qr/
             [a-z_]
@@ -170,6 +262,7 @@ class Template::SX::Reader::Stream {
     }
 
     my %QuoteType = (
+        q('),   'quote',
         q(`),   'quote',
         q(,@),  'unquote',
         q(,),   'unquote',
@@ -189,7 +282,6 @@ class Template::SX::Reader::Stream {
     method _parse_numbers () {
 
         my $rx_num = qr/
-            [+-]?
             [0-9]
             (?:
               [0-9_]*
@@ -198,11 +290,21 @@ class Template::SX::Reader::Stream {
         /x;
 
         my $rx = qr/
-            $rx_num
+            [+-]?
             (?:
-              \.
-              $rx_num
-            )?
+              (?:               # 5 -5
+                $rx_num
+                (?:             # 5.5 -5.5
+                  \.
+                  $rx_num
+                )?
+              )
+              |
+              (?:               # .5 -.5
+                \.
+                $rx_num
+              )
+            )
         /x;
 
         if (defined( my $num = $self->try_regex($rx) )) {
@@ -215,8 +317,7 @@ class Template::SX::Reader::Stream {
     method _parse_strings () {
 
         my $rx = qr/
-              (?: " .*? (?<! \\ ) " )
-            | (?: ' .*? (?<! \\ ) ' )
+              " .*
         /x;
 
         if (defined( my $str = $self->try_regex($rx) )) {

@@ -1,6 +1,9 @@
 #!/usr/bin/env perl
-use Template::SX::Test qw( :all );
-use Test::More;
+use strict;
+use warnings;
+use Template::SX::Test      qw( :all );
+use Template::SX::Constants qw( :all );
+use Test::Most;
 
 my $vars = { 
     add     => sub { $_[0] + $_[1] },
@@ -17,6 +20,11 @@ my @apply = (
 
 is_result @$_ 
     for @apply;
+
+throws_ok { sx_load '()' } E_SYNTAX, 'empty application error';
+like $@, qr/empty application/i, 'correct error message';
+is $@->location->{line}, 1, 'correct line number';
+is $@->location->{char}, 1, 'correct char number';
 
 done_testing;
 

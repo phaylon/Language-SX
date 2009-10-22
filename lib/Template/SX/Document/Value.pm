@@ -1,8 +1,9 @@
 use MooseX::Declare;
 
-class Template::SX::Document::Value {
+class Template::SX::Document::Value 
+    with Template::SX::Document::Locatable {
 
-    use Template::SX::Types     qw( Scope );
+    use Template::SX::Types     qw( :all );
     use MooseX::Types::Moose    qw( Value );
 
     has value => (
@@ -17,8 +18,8 @@ class Template::SX::Document::Value {
         return $self->$method($inf);
     }
 
-    method new_from_stream (ClassName $class: Object $doc, Object $stream, Str $value) {
+    method new_from_stream (ClassName $class: Object $doc, Object $stream, Str $value, Location $loc) {
 
-        return $class->new(value => $value);
+        return $class->new(value => $value, location => $loc);
     }
 }

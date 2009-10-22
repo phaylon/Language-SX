@@ -1,6 +1,7 @@
 #!/usr/bin/env perl
-use Template::SX::Test qw( :all );
-use Test::More;
+use Template::SX::Constants qw( :all );
+use Template::SX::Test      qw( :all );
+use Test::Most;
 
 my @vars = (
     [['x', { x => 23 }],                    23,     'passed variable'],
@@ -11,6 +12,13 @@ my @vars = (
 
 is_result @$_ 
     for @vars;
+
+throws_ok { sx_run 'foobar' } E_UNBOUND, 'unbound variable exception';
+like $@, qr/unbound variable/i, 'correct error message';
+like $@, qr/foobar/, 'correct variable name in error message';
+is $@->variable_name, 'foobar', 'correct variable name in exception';
+is $@->location->{line}, 1, 'correct line number';
+is $@->location->{char}, 1, 'correct char number';
 
 done_testing;
 
