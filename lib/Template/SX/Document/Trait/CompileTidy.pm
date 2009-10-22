@@ -1,13 +1,13 @@
 use MooseX::Declare;
 
-role Template::SX::Trait::CompileTidy {
+role Template::SX::Document::Trait::CompileTidy {
 
-    around compile_document (@args) {
+    around compile (@args) {
         require Perl::Tidy;
 
         my $code = $self->$orig(@args);
         my $tidy;
-
+        
         Perl::Tidy::perltidy(
             source      => \$code,
             destination => \$tidy,

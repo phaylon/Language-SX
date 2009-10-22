@@ -27,6 +27,7 @@ class Template::SX::Inflator {
             find_library    => 'first',
             map_libraries   => 'map',
         },
+        init_arg    => 'libraries',
     );
 
     has _object_cache => (
@@ -50,8 +51,14 @@ class Template::SX::Inflator {
 
     method clone_with_additional_traits (ArrayRef[Str] $traits) {
 
+        my @roles = 
+            map  { s/\A${PluginNamespace}::// }
+            grep { /\A$PluginNamespace/ }
+            map  { $_->name }
+                @{ $self->meta->roles };
+
         return blessed($self)->new_with_traits(
-            traits => [@$traits, @{ $self->meta->roles }],
+            traits => [@$traits, @roles],
             map {
                 $_->init_arg
                 ? ($_->init_arg, $_->get_value($self))

@@ -17,7 +17,7 @@ use Sub::Exporter -setup => {
     )],
 };
 
-our $SX = Template::SX->new_with_traits(traits => [qw( CompileTidy )]);
+our $SX = Template::SX->new(document_traits => [qw( CompileTidy )], default_libraries => []);
 
 sub bareword {
     my ($val) = @_;
@@ -44,7 +44,8 @@ sub sx_read {
 
 sub sx_load {
     my $str = shift;
-    return $SX->load(string => $str);
+    my $doc = $SX->read(string => $str);
+    return $doc->load;
 }
 
 sub sx_run {
@@ -55,9 +56,9 @@ sub sx_run {
 
 sub with_libs (&@) {
     my ($code, @libs) = @_;
-    local $SX = Template::SX->new_with_traits(
-        traits      => [qw( CompileTidy )],
-        libraries   => [@libs],
+    local $SX = Template::SX->new(
+        document_traits     => [qw( CompileTidy )],
+        default_libraries   => [@libs],
     );
     $code->();
 }

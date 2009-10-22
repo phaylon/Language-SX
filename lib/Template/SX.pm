@@ -4,8 +4,8 @@ class Template::SX {
 
     with 'MooseX::Traits';
 
-    use Template::SX::Types;
-    use MooseX::Types::Moose qw( CodeRef );
+    use Template::SX::Types     qw( :all );
+    use MooseX::Types::Moose    qw( CodeRef Str ArrayRef );
     use MooseX::MultiMethods;
 
     has reader => (
@@ -18,6 +18,21 @@ class Template::SX {
         },
     );
 
+    has default_libraries => (
+        is          => 'ro',
+        isa         => LibraryList,
+        required    => 1,
+        coerce      => 1,
+        default     => sub { to_LibraryList [qw( Core )] },
+    );
+
+    has document_traits => (
+        is          => 'ro',
+        isa         => ArrayRef[Str],
+        required    => 1,
+        default     => sub { [] },
+    );
+
     has '+_trait_namespace' => (
         default     => 'Template::SX::Trait',
     );
@@ -25,46 +40,18 @@ class Template::SX {
     method _build_reader {
 
         require Template::SX::Reader;
-        return Template::SX::Reader->new;
+        return Template::SX::Reader->new(
+            document_libraries  => [@{ $self->default_libraries }],
+            document_traits     => [@{ $self->document_traits }],
+        );
     }
 
-    method compile_document (Template::SX::Document $doc) {
-        return $doc->compile;
-    }
-
-    method load_compiled (Str $body) {
-
-        local $@;
-        my $code = eval sprintf 'package Template::SX::VOID; %s', $body;
-
-        if ($@) {
-
-            # FIXME throw exception
-            die "Unable to load compiled code: $@\n";
-        }
-        elsif (not is_CodeRef $code) {
-
-            # FIXME throw exception
-            die "Invalid compilation result, not a code reference\n";
-        }
-
-        return $code;
-    }
-
-    multi method compile (Str :$string) {
-
-        my $doc  = $self->read_string($string);
-        my $body = $self->compile_document($doc);
-        print "COMPILED:\n$body\n";
-
-        return $body;
+    multi method read (Str :$string) {
+        return $self->read_string($string);
     }
 
     multi method load (Str :$string) {
-
-        return $self->load_compiled(
-            $self->compile(string => $string),
-        );
+        return $self->read_string($string)->load;
     }
 
     multi method run (Str :$string, HashRef :$vars = {}) {

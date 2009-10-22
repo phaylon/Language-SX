@@ -60,6 +60,9 @@ my $CoerceLib = sub {
     my $str = shift;
     my $obj;
 
+    return $str 
+        if ref $str;
+
     for my $try ($str, "Template::SX::Library::$str") {
         try {
             Class::MOP::load_class($try);

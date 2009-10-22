@@ -188,7 +188,7 @@ with_libs(sub {
         is $@->location->{char}, $char, 'correct char number';
     }
 
-}, 'ScopeHandling', 'Math');
+}, 'ScopeHandling', 'Math', 'Quoting');
 
 done_testing;
 
