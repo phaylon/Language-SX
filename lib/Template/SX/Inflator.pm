@@ -3,6 +3,7 @@ use MooseX::Declare;
 class Template::SX::Inflator {
     with 'MooseX::Traits';
 
+    use Sub::Name               qw( subname );
     use TryCatch;
     use List::AllUtils          qw( uniq );
     use Scalar::Util            qw( blessed );
@@ -92,7 +93,7 @@ class Template::SX::Inflator {
 
         if (my $found = $self->find_library_with_syntax($name)) {
 
-            return sub { scalar $found->get_syntax($name)->($found, @_) };
+            return subname SYNTAX_GETTER => sub { scalar $found->get_syntax($name)->($found, @_) };
         }
 
         return undef;
@@ -247,7 +248,7 @@ class Template::SX::Inflator {
 
     method make_sequence (ArrayRef[CodeRef] :$elements) {
 
-        return sub {
+        return subname SEQUENCE => sub {
             my $env = shift;
             
             return undef 
@@ -264,7 +265,7 @@ class Template::SX::Inflator {
 
     method make_list_builder (ArrayRef[CodeRef] :$items, :$env) {
 
-        return sub { 
+        return subname LIST_BUILDER => sub { 
             my $env = shift;
             return [ map { ($_->($env)) } @$items ];
         };
@@ -272,7 +273,7 @@ class Template::SX::Inflator {
 
     method make_hash_builder (ArrayRef[CodeRef] :$items) {
 
-        return sub {
+        return subname HASH_BUILDER => sub {
             my $env = shift;
             return +{ map { ($_->($env)) } @$items };
         };
@@ -285,16 +286,16 @@ class Template::SX::Inflator {
         if ($cached_by) {
             my $cached = $self->_object_cache->{ $class }{ $arguments->{ $cached_by } } 
                      ||= $class->new($arguments);
-            return sub { $cached };
+            return subname CACHED_OBJECT_BUILDER => sub { $cached };
         }
         else {
-            return sub { $class->new($arguments) };
+            return subname OBJECT_BUILDER => sub { $class->new($arguments) };
         }
     }
 
     method make_concatenation (ArrayRef[CodeRef] :$elements) {
 
-        return sub {
+        return subname CONCAT => sub {
             my $env = shift;
 
             return join '', map $_->($env), @$elements;
@@ -303,7 +304,7 @@ class Template::SX::Inflator {
 
     method make_constant (Any :$value) {
 
-        return sub { $value };
+        return subname CONSTANT => sub { $value };
     }
 
     method make_boolean_constant (Any :$value) {
@@ -318,7 +319,7 @@ class Template::SX::Inflator {
 
     method make_application (CodeRef :$apply, ArrayRef[CodeRef] :$arguments, HashRef :$location, :$env) {
 
-        return sub {
+        return subname APPLICATION => sub {
             my $env = shift;
             my $evaluated_apply = $apply->($env);
             my @evaluated_args  = map { scalar $_->($env) } @$arguments;
@@ -375,11 +376,13 @@ class Template::SX::Inflator {
             return $exists->($env->{parent});
         };
 
-        return sub {
+        my $found_env;
+
+        return subname GETTER => sub {
             my $env = shift;
 
-            if (my $found = $exists->($env)) {
-                return $found->{vars}{ $name };
+            if ($found_env ||= $exists->($env)) {
+                return $found_env->{vars}{ $name };
             }
             elsif ($lib_function) {
                 return $lib_function;

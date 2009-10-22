@@ -7,7 +7,7 @@ class Template::SX::Document
 
     use Template::SX::Constants qw( :all );
     use Template::SX::Types     qw( :all );
-    use MooseX::Types::Moose    qw( ArrayRef Object Bool Str CodeRef );
+    use MooseX::Types::Moose    qw( ArrayRef HashRef Object Bool Str CodeRef );
 
     Class::MOP::load_class(E_INTERNAL);
 
@@ -50,11 +50,19 @@ class Template::SX::Document
         lazy_build  => 1,
     );
 
+    has _object_cache => (
+        is          => 'ro',
+        isa         => HashRef,
+        required    => 1,
+        default     => sub { {} },
+    );
+
     method compile () {
         require Template::SX::Inflator;
 
         my $inflator = Template::SX::Inflator->new_with_resolved_traits(
-            libraries => [$self->all_libraries],
+            libraries       => [$self->all_libraries],
+            _object_cache   => $self->_object_cache,
         );
 
         my $compiled = $inflator->compile_base([$self->all_nodes], $self->start_scope);
@@ -91,7 +99,7 @@ class Template::SX::Document
     }
 
     method run (HashRef :$vars = {}) {
-        return $self->load->(%$vars);
+        return $self->loaded_callback->(%$vars);
     }
 
     method new_from_stream (ClassName $class: Template::SX::Reader::Stream $stream, @for_new) {
