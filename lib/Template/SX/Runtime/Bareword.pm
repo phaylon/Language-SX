@@ -1,9 +1,11 @@
 use MooseX::Declare;
 
-class Template::SX::Runtime::Bareword {
-    use overload '""' => 'as_string', fallback => 1;
+class Template::SX::Runtime::Bareword is dirty {
 
     use MooseX::Types::Moose qw( Str );
+
+    clean;
+    use overload '""' => 'as_string', fallback => 1;
 
     has value => (
         is          => 'ro',
@@ -11,5 +13,5 @@ class Template::SX::Runtime::Bareword {
         required    => 1,
     );
 
-    method as_string { $self->value }
+    method as_string (Any @) { $self->value }
 }

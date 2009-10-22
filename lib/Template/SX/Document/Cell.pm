@@ -92,7 +92,7 @@ class Template::SX::Document::Cell
         my $specific_class = (
 
               $value eq CELL_APPLICATION    ? 'Application'
-            : $value eq CELL_ARRAY          ? 'Array'
+            : $value eq CELL_ARRAY          ? 'Application'
             : $value eq CELL_HASH           ? 'Hash'
             : undef
         );

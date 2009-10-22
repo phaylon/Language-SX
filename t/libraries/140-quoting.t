@@ -16,12 +16,13 @@ my @quoted = (
     [q{'("foo")},       ['foo'],    'quoted list with string constant'],
     [q{'"${(+ 2 3)}"},  '5',        'quoted string with interpolation unquotes'],
     [q{'"${'23}"},      '23',       'quoted string with interpolated, quoted constant'],
+    [q{':foo},          'foo',      'quoted keyword'],
+    [q{'#true},         1,          'quoted boolean'],
 
     [   q{(quote foo)},
         bareword('foo'),
         'explicit quote',
     ],
-
     [   q{'foo},
         bareword('foo'),
         'quoted bareword',
@@ -30,10 +31,13 @@ my @quoted = (
         [bareword('foo'), bareword('bar')],
         'quoted list with barewords',
     ],
-
     [   q{'((foo 23) (bar "baz"))},
         [[bareword('foo'), 23], [bareword('bar'), 'baz']],
         'quoted complex',
+    ],
+    [   q{'{ x 3 }},
+        { x => 3 },
+        'simply quoted hash',
     ],
 );
 
@@ -43,17 +47,14 @@ my @quasiquoted = (
         23,
         'quasiquoted constant',
     ],
-
     [   q{`foo},
         bareword('foo'),
         'quasiquoted bareword',
     ],
-
     [   q{`(foo 23)},
         [bareword('foo'), 23],
         'quasiquoted list with bareword and constant',
     ],
-
     [   q{`,23},
         23,
         'quasiquoted and directly unquoted constant',
@@ -69,6 +70,10 @@ my @quasiquoted = (
     [   q{((lambda args `(x ,@args y)) 1 2 3)},
         [bareword('x'), 1, 2, 3, bareword('y')],
         'quasiquotation with spliced unquote',
+    ],
+    [   q[ ((lambda (x y . r) `{ ,x ,y ,@r }) 'foo 23 'bar 42) ],
+        { foo => 23, bar => 42 },
+        'quasiquoted hash with spliced unquoted item',
     ],
 );
 
@@ -94,8 +99,8 @@ with_libs(sub {
     is $@->location->{line}, 1, 'correct line number';
     is $@->location->{char}, 2, 'correct char number';
 
-    is_deeply sx_run(q{ `(html (head (title ,title)) (body ,message)) }, { title => 'Test', message => 'Hello' }),
-        [bareword('html'), [bareword('head'), [bareword('title'), 'Test']], [bareword('body'), 'Hello']],
+    is_deeply sx_run(q/ `(html (head (title ,title)) (body { class "content" } ,message)) /, { title => 'Test', message => 'Hello' }),
+        [bareword('html'), [bareword('head'), [bareword('title'), 'Test']], [bareword('body'), { class => 'content' }, 'Hello']],
         'simple html test';
 
 }, 'Quoting', 'Math', 'ScopeHandling');

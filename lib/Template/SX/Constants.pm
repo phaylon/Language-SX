@@ -31,6 +31,8 @@ use constant {
     E_UNBOUND           => 'Template::SX::Exception::UnboundVar',
     E_INTERNAL          => 'Template::SX::Exception::Internal',
     E_TYPE              => 'Template::SX::Exception::Type',
+    E_CAPTURED          => 'Template::SX::Exception::Captured',
+    E_APPLY             => 'Template::SX::Exception::Apply',
 };
 
 use Sub::Exporter -setup => {
@@ -54,6 +56,8 @@ use Sub::Exporter -setup => {
         E_UNBOUND
         E_RESERVED
         E_TYPE
+        E_CAPTURED
+        E_APPLY
 
         QUOTE_FULL
         QUOTE_QUASI

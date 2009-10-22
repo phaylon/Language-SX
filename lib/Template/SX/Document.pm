@@ -77,4 +77,6 @@ class Template::SX::Document
     method string_handler_class     () { join '::', __PACKAGE__, 'String' }
     method quote_handler_class      () { join '::', __PACKAGE__, 'Quote' }
     method unquote_handler_class    () { join '::', __PACKAGE__, 'Quote' }
+    method boolean_handler_class    () { join '::', __PACKAGE__, 'Boolean' }
+    method keyword_handler_class    () { join '::', __PACKAGE__, 'Keyword' }
 }

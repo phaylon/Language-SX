@@ -143,6 +143,8 @@ class Template::SX::Reader::Stream {
             numbers
             strings
             cell
+            boolean
+            keyword
             bareword
         );
     }
@@ -230,12 +232,43 @@ class Template::SX::Reader::Stream {
         return undef;
     }
 
+    method _parse_boolean () {
+
+        if (defined( my $bool = $self->try_regex(qr/ \# (?: t | f | yes | no | true | false ) /x) )) {
+            $bool =~ s/\A\#//;
+            return [boolean => $bool];
+        }
+
+        return undef;
+    }
+
+    method _parse_keyword () {
+
+        my $rx_word = qr/[a-z_-]/i;
+        my $rx_full = qr/$rx_word (?: $rx_word | [0-9] )*/x;
+        my $rx      = qr/
+            (?: : $rx_full )
+              |
+            (?: $rx_full : )
+        /x;
+
+        if (defined( my $keyword = $self->try_regex($rx) )) {
+            $keyword =~ s/(\A:|:\Z)//g;
+            $keyword =~ s/-/_/g;
+            return [keyword => $keyword];
+        }
+
+        return undef;
+    }
+
     method _parse_bareword () {
 
         my @not_allowed = (qw/
             { } ( ) [ ]
-            ` @ % " ' ;
-        /, ',');
+            ` " ' 
+            @ % 
+            ; :
+        /, ',', '#');
 
         my $rx_join = sub { join ' ', map("(?! $_ )", '\s', map("\Q$_\E", @_)) };
 

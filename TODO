@@ -1,17 +1,8 @@
 
 BASIC:
 
-    quoting
-    hash
-    array
     /foo\/bar/
-    (let
-    (let*
-    (let-rec
-    (define (foo x y)
-    booleans
-    keywords
-    () equal to []
+    class application
     (set! x 23)
     (map ls f)
     (grep ls f)

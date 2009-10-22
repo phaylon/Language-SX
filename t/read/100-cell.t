@@ -13,4 +13,11 @@ like $@, qr/unexpected end of stream/i, 'correct error message';
 is $@->location->{line}, 1, 'correct line number';
 is $@->location->{char}, 1, 'correct char number';
 
+do {
+    my $doc = sx_read '(foo) [foo]';
+    is $doc->node_count, 2, 'document contains two nodes';
+    isa_ok $doc->get_node(0), 'Template::SX::Document::Cell::Application', 'normally parenthesized cell';
+    isa_ok $doc->get_node(1), 'Template::SX::Document::Cell::Application', 'bracketed cell';
+};
+
 done_testing;

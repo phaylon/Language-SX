@@ -13,6 +13,7 @@ use Sub::Exporter -setup => {
         sx_load
         sx_run
         bareword
+        dump_through
     )],
 };
 
@@ -22,6 +23,11 @@ sub bareword {
     my ($val) = @_;
     require Template::SX::Runtime::Bareword;
     return Template::SX::Runtime::Bareword->new(value => $val);
+}
+
+sub dump_through ($) {
+    pp $_[0];
+    return $_[0];
 }
 
 sub is_result {

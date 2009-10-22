@@ -22,6 +22,61 @@ push @try, [q{
 
 }, 5, 'kar/kdr example'];
 
+push @try, [q{
+
+    (define (((add x) y) z) (+ x y z))
+    (((add 3) 4) 5)
+
+}, 12, 'definition shortcut with generator'];
+
+push @try, [q{
+
+    (define (my+ x y) (+ x y))
+    (my+ 2 3)
+
+}, 5, 'simple shortcut lambda definition'];
+
+push @try, [q{
+
+    (let [(x 3) (y 4)]
+      (+ x y))
+
+}, 7, 'simple let'];
+
+push @try, [q{
+
+    (let ((x 3) 
+          (y 4))
+      (let ((x (* x 2))
+            (y (+ y 1)))
+        `(,x ,y)))
+
+}, [6, 5], 'shadowing of simple let'];
+
+push @try, [q{
+
+    (let* ((x 3)
+           (y (+ x 1)))
+      y)
+
+}, 4, 'simple let*'];
+
+push @try, [q{
+
+    (define x 3)
+    (let* ((x (+ x 1)) (x (+ x 1))) x)
+
+}, 5, 'shadowing of let*'];
+
+push @try, [q{
+
+    (let-rec ((foo (lambda (n) (+ n 1)))
+              (bar (lambda (n) `(,(foo n) ,(baz n))))
+              (baz (lambda (n) (- n 1))))
+      (bar 23))
+
+}, [24, 22], 'simple let-rec'];
+
 with_libs(sub {
 
     is_result @$_ for @try;
@@ -90,6 +145,47 @@ with_libs(sub {
         like $@, qr/invalid/, 'correct error message';
         is $@->location->{line}, 1, 'correct line number';
         is $@->location->{char}, 1, 'correct char number';
+    }
+
+
+    for my $let_missing ('(let)', '(let*)', '(let ((x 3)))', '(let* ((x 3)))') {
+
+        throws_ok { sx_load $let_missing } E_SYNTAX, 'let with missing arguments raises syntax error';
+        like $@, qr/expect/, 'correct error message';
+        is $@->location->{line}, 1, 'correct line number';
+        is $@->location->{char}, 1, 'correct char number';
+    }
+
+    my @let_invalid = (
+
+        ['let with invalid variable specification',                 '(let 23 23)',                  6, qr/variable specification.*list/],
+        ['let with invalid variable specification element',         '(let (x 23) x)',               7, qr/element.*list/],
+        ['let with triple as variable specification element',       '(let ((x 23 7)) x)',           7, qr/not a pair/],
+        ['let with single as variable specification element',       '(let ((x)) x)',                7, qr/not a pair/],
+        ['let with non-bareword as name',                           '(let ((8 x)) x)',              8, qr/not a bareword/],
+        ['let with redefined vars',                                 '(let ((x 3) (x 4)) x)',       14, qr/multiple times/], 
+
+        ['let* with invalid variable specification',                '(let* 23 23)',                 7, qr/variable specification.*list/],
+        ['let* with invalid variable specification element',        '(let* (x 23) x)',              8, qr/element.*list/],
+        ['let* with triple as variable specification element',      '(let* ((x 23 7)) x)',          8, qr/not a pair/],
+        ['let* with single as variable specification element',      '(let* ((x)) x)',               8, qr/not a pair/],
+        ['let* with non-bareword as name',                          '(let* ((8 x)) x)',             9, qr/not a bareword/],
+
+        ['let-rec with invalid variable specification',             '(let-rec 23 23)',             10, qr/variable specification.*list/],
+        ['let-rec with invalid variable specification element',     '(let-rec (x 23) x)',          11, qr/element.*list/],
+        ['let-rec with triple as variable specification element',   '(let-rec ((x 23 7)) x)',      11, qr/not a pair/],
+        ['let-rec with single as variable specification element',   '(let-rec ((x)) x)',           11, qr/not a pair/],
+        ['let-rec with non-bareword as name',                       '(let-rec ((8 x)) x)',         12, qr/not a bareword/],
+        ['let-rec with redefined vars',                             '(let-rec ((x 3) (x 4)) x)',   18, qr/multiple times/], 
+    );
+
+    for my $let_invalid (@let_invalid) {
+        my ($title, $code, $char, $err) = @$let_invalid;
+
+        throws_ok { sx_load $code } E_SYNTAX, "$title raises syntax error";
+        like $@, $err, 'correct error message';
+        is $@->location->{line}, 1, 'correct line number';
+        is $@->location->{char}, $char, 'correct char number';
     }
 
 }, 'ScopeHandling', 'Math');

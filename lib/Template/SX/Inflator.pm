@@ -3,6 +3,7 @@ use MooseX::Declare;
 class Template::SX::Inflator {
     with 'MooseX::Traits';
 
+    use TryCatch;
     use List::AllUtils          qw( uniq );
     use Scalar::Util            qw( blessed );
     use Template::SX::Types     qw( :all );
@@ -12,7 +13,8 @@ class Template::SX::Inflator {
 
     my $PluginNamespace = __PACKAGE__ . '::Trait';
 
-    Class::MOP::load_class(E_UNBOUND);
+    Class::MOP::load_class($_)
+        for E_UNBOUND, E_CAPTURED, E_APPLY;
 
     has libraries => (
         traits      => [qw( Array )],
@@ -261,6 +263,14 @@ class Template::SX::Inflator {
         };
     }
 
+    method make_hash_builder (ArrayRef[CodeRef] :$items) {
+
+        return sub {
+            my $env = shift;
+            return +{ map { ($_->($env)) } @$items };
+        };
+    }
+
     method make_object_builder (Str :$class, HashRef :$arguments, Str :$cached_by?) {
         Class::MOP::load_class($class);
 
@@ -284,17 +294,65 @@ class Template::SX::Inflator {
         };
     }
 
-    method make_constant (Value :$value) {
+    method make_constant (Any :$value) {
 
         return sub { $value };
     }
 
-    method make_application (CodeRef :$apply, ArrayRef[CodeRef] :$arguments, :$env) {
+    method make_boolean_constant (Any :$value) {
+
+        return $self->make_constant(value => $value);
+    }
+
+    method make_keyword_constant (Any :$value) {
+
+        return $self->make_constant(value => $value);
+    }
+
+    method make_application (CodeRef :$apply, ArrayRef[CodeRef] :$arguments, HashRef :$location, :$env) {
 
         return sub {
             my $env = shift;
             my $evaluated_apply = $apply->($env);
-            return scalar $evaluated_apply->(map { $_->($env) } @$arguments);
+            my @evaluated_args  = map { scalar $_->($env) } @$arguments;
+
+            my $result;
+            try {
+
+                if (my $class = blessed($evaluated_apply)) {
+                    
+                    E_APPLY->throw(
+                        message     => "missing method argument for method call on $class instance",
+                        location    => $location,
+                    ) unless @evaluated_args;
+
+                    my $method = shift @evaluated_args;
+                    $result = scalar $evaluated_apply->$method(@evaluated_args);
+                }
+                elsif (ref $evaluated_apply eq 'CODE') {
+
+                    $result = scalar $evaluated_apply->(map { $_->($env) } @$arguments);
+                }
+                else {
+
+                    E_APPLY->throw(
+                        message     => 'invalid applicant type: ' . ref($evaluated_apply),
+                        location    => $location,
+                    );
+                }
+            } 
+            catch (Template::SX::Exception $e) {
+                die $e;
+            }
+            catch (Any $e) {
+                E_CAPTURED->throw(
+                    message     => "error during application: $e",
+                    location    => $location,
+                    captured    => $e,
+                );
+            }
+
+            return $result;
         };
     }
 

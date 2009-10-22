@@ -34,6 +34,7 @@ enum Scope, SCOPE_FUNCTIONAL, SCOPE_STRUCTURAL;
 class_type $_ for map "Template::SX::$_", qw(
     Document
     Document::Bareword
+    Document::Cell::Application
     Library
 );
 

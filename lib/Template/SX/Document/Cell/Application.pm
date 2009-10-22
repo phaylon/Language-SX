@@ -3,6 +3,7 @@ use MooseX::Declare;
 class Template::SX::Document::Cell::Application 
     extends Template::SX::Document::Cell {
 
+    use Data::Dump              qw( pp );
     use Perl6::Junction         qw( any );
     use Template::SX::Constants qw( :all );
 
@@ -80,7 +81,7 @@ class Template::SX::Document::Cell::Application
             
             E_SYNTAX->throw(
                 location    => $self->location,
-                message     => 'empty application is illegal; use (list) for empty list',
+                message     => q{empty application is illegal; use '() for empty list},
             );
         }
 
@@ -97,6 +98,7 @@ class Template::SX::Document::Cell::Application
             method  => 'make_application',
             args    => {
                 apply       => $apply->compile($inf, SCOPE_FUNCTIONAL),
+                location    => pp($self->location),
                 arguments   => sprintf(
                     '[%s]',
                     join(', ',
