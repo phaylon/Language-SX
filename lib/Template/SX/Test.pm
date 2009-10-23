@@ -2,12 +2,13 @@ package Template::SX::Test;
 use strict;
 use warnings;
 
-use Test::More;
+use Test::Most;
 use Template::SX;
 use Data::Dump qw( pp );
 use Sub::Exporter -setup => {
     exports => [qw(
         is_result
+        is_error
         with_libs
         sx_read
         sx_load
@@ -35,6 +36,15 @@ sub is_result {
     my $res = $SX->run('string', ref($code) ? ($code->[0], 'vars', $code->[1]) : $code);
 #    pp $res;
     is_deeply $res, $expect, "correct result for $name";
+}
+
+sub is_error {
+    my ($code, $err_spec, $name) = @_;
+    my ($class, $msg, $line, $char) = @$err_spec;
+    throws_ok { $SX->run('string', ref($code) ? ($code->[0], 'vars', $code->[1]) : $code) } $class, "$name raises exception";
+    like $@, $msg, "$name has correct error message";
+    is $@->location->{line}, $line, "$name has correct line number" if $line;
+    is $@->location->{char}, $char, "$name has correct char number" if $char;
 }
 
 sub sx_read {

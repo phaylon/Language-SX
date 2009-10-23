@@ -145,6 +145,7 @@ class Template::SX::Reader::Stream {
             cell
             boolean
             keyword
+            regex
             bareword
         );
     }
@@ -307,6 +308,27 @@ class Template::SX::Reader::Stream {
 
         if (defined( my $sign = $self->try_regex(qr/$rx/, bare => 1) )) {
             return [$QuoteType{ $sign }, $sign];
+        }
+
+        return undef;
+    }
+
+    method _parse_regex () {
+
+        my $rx_mod = qr/ (?: [a-z]* (?: - [a-z]+ )? ) /xi;
+        my $rx = qr[
+            rx
+            (?:
+                (?: / .*? (?<!\\) / $rx_mod )
+                  |
+                (?: \( .*? (?<!\\) \) $rx_mod )
+                  |
+                (?: \{ .*? (?<!\\) \} $rx_mod )
+            )
+        ]x;
+
+        if (defined( my $regex = $self->try_regex(qr/$rx/, bare => 1) )) {
+            return [regex => $regex];
         }
 
         return undef;

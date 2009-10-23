@@ -29,6 +29,23 @@ class Template::SX::Library {
         },
     );
 
+    class_has setter_map => (
+        traits      => [qw( Hash )],
+        isa         => HashRef[CodeRef],
+        default     => sub { {} },
+        handles     => {
+            add_setter      => 'set',
+            get_setter      => 'get',
+            _has_setter     => 'exists',
+            setter_names    => 'keys',
+        },
+    );
+
+    method has_setter (Str $name) {
+        return undef unless $self->_has_setter($name);
+        return $self;
+    }
+
     method has_function (Str $name) {
         return undef unless $self->_has_function($name);
         return $self;

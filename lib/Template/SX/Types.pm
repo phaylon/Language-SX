@@ -35,6 +35,8 @@ class_type $_ for map "Template::SX::$_", qw(
     Document
     Document::Bareword
     Document::Cell::Application
+    Exception
+    Exception::Prototype
     Library
 );
 

@@ -103,6 +103,6 @@ with_libs(sub {
         [bareword('html'), [bareword('head'), [bareword('title'), 'Test']], [bareword('body'), { class => 'content' }, 'Hello']],
         'simple html test';
 
-}, 'Quoting', 'Math', 'ScopeHandling');
+}, 'Quoting', 'Data::Numbers', 'ScopeHandling');
 
 done_testing;

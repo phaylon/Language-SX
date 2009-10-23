@@ -27,6 +27,8 @@ class Template::SX::Exception is dirty {
         die $class->new(@args);
     }
 
+    method rethrow { die $self }
+
     sub as_string { 
         my $self = shift;
         return $self->format_message;

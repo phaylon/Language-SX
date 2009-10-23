@@ -24,7 +24,8 @@ class Template::SX::Document::Cell::Application
 
     method is_unquote (Object $inf) {
 
-        my $node = $self->head_node;
+        my $node = $self->head_node
+            or return undef;
 
         return undef
             unless $node->isa('Template::SX::Document::Bareword');

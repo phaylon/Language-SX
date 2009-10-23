@@ -37,7 +37,7 @@ with_libs(sub {
     is $@->location->{line}, 1, 'correct line number';
     is $@->location->{char}, 10, 'correct char number';
 
-    throws_ok { sx_run q{ (foo 23) }, { foo => {} } } E_APPLY, 'hash application throws exception';
+    throws_ok { sx_run q{ (foo 23) }, { foo => {} } } E_TYPE, 'hash application throws exception';
     like $@, qr/invalid applicant/, 'correct error message';
     like $@, qr/HASH/, 'error message contains ref type';
     is $@->location->{line}, 1, 'correct line number';

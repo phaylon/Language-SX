@@ -72,7 +72,7 @@ class Template::SX::Document
 
     method _build_compiled_body () {
         my $compiled = $self->compile;
-        print "COMPILED\n$compiled\n";
+        print "COMPILED\n$compiled\n" if $ENV{DEV_SX_COMPILED};
         return $compiled;
     }
 
@@ -141,4 +141,5 @@ class Template::SX::Document
     method unquote_handler_class    () { join '::', __PACKAGE__, 'Quote' }
     method boolean_handler_class    () { join '::', __PACKAGE__, 'Boolean' }
     method keyword_handler_class    () { join '::', __PACKAGE__, 'Keyword' }
+    method regex_handler_class      () { join '::', __PACKAGE__, 'Regex' }
 }

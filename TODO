@@ -1,7 +1,6 @@
 
 BASIC:
 
-    /foo\/bar/
     class application
     (set! x 23)
     (map ls f)
@@ -13,15 +12,12 @@ BASIC:
     (object? foo)
     (hash? bar)
     (list? baz)
-    (empty? ...) ; (), {}, '', undef
     (join sep ls)
     (split /\s+/ str)
-    (apply + x y (list y z))
     (append ls1 ls2)
     (== 1 2)
     (eq? "x" "y")
     < > <= >=
-    <=>
     (sort ls fun)
     and, and-def, 
     or, or-def, 
@@ -53,6 +49,8 @@ BASIC:
     (match /rx/ str)
     (match-all /rx/ str)
     (replace /rx/ fun str)
+    (regex rx1 rx2 ...)
+    (quotemeta str1 str2 ...)
     (curry fun 1 2 ...)
     (rcurry fun 1 2 ...)
     (uniq ls ...)

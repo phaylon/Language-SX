@@ -9,6 +9,7 @@ class Template::SX::Inflator {
     use Scalar::Util            qw( blessed );
     use Template::SX::Types     qw( :all );
     use Template::SX::Constants qw( :all );
+    use Template::SX::Util      qw( :all );
     use MooseX::Types::Moose    qw( ArrayRef Str Object Undef HashRef );
     use Data::Dump              qw( pp );
 
@@ -195,6 +196,10 @@ class Template::SX::Inflator {
                         push @compiled, $compiled->compile_scoped($self, [@{ $nodes }[$node_idx + 1 .. $#$nodes]]);
                         last NODE;
                     }
+                    elsif ($compiled->isa('Template::SX::Inflator::Accessor')) {
+
+                        push @compiled, $compiled->render_getter;
+                    }
                     else {
 
                         # FIXME throw exception
@@ -317,7 +322,34 @@ class Template::SX::Inflator {
         return $self->make_constant(value => $value);
     }
 
+    method make_regex_constant (RegexpRef :$value) {
+
+        return $self->make_constant(value => $value);
+    }
+
     method make_application (CodeRef :$apply, ArrayRef[CodeRef] :$arguments, HashRef :$location, :$env) {
+
+        return subname APPLICATION => sub {
+            my $env = shift;
+            my $result;
+
+            try {
+                $result = apply_scalar 
+                    apply       => $apply->($env), 
+                    arguments   => [map { $_->($env) } @$arguments];
+            }
+            catch (Template::SX::Exception::Prototype $e) {
+                $e->throw_at($location);
+            }
+            catch (Any $e) {
+                die $e;
+            }
+
+            return $result;
+        };
+    }
+
+    method __make_application (CodeRef :$apply, ArrayRef[CodeRef] :$arguments, HashRef :$location, :$env) {
 
         return subname APPLICATION => sub {
             my $env = shift;
@@ -351,6 +383,9 @@ class Template::SX::Inflator {
             } 
             catch (Template::SX::Exception $e) {
                 die $e;
+            }
+            catch (Template::SX::Exception::Prototype $e) {
+                $e->throw_at($location),
             }
             catch (Any $e) {
                 E_CAPTURED->throw(

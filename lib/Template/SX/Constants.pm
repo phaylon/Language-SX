@@ -33,6 +33,8 @@ use constant {
     E_TYPE              => 'Template::SX::Exception::Type',
     E_CAPTURED          => 'Template::SX::Exception::Captured',
     E_APPLY             => 'Template::SX::Exception::Apply',
+    E_PROTOTYPE         => 'Template::SX::Exception::Prototype',
+    E_PARAMETER         => 'Template::SX::Exception::Parameter',
 };
 
 use Sub::Exporter -setup => {
@@ -58,6 +60,8 @@ use Sub::Exporter -setup => {
         E_TYPE
         E_CAPTURED
         E_APPLY
+        E_PROTOTYPE
+        E_PARAMETER
 
         QUOTE_FULL
         QUOTE_QUASI

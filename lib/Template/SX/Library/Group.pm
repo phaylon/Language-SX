@@ -22,6 +22,15 @@ class Template::SX::Library::Group {
         return $self->map_sublibraries(sub { ($_->additional_inflator_traits) });
     }
 
+    method has_setter (Str $name) {
+
+        for my $lib ($self->all_sublibraries) {
+            return $lib if $lib->has_setter($name);
+        }
+
+        return undef;
+    }
+
     method has_syntax (Str $name) {
 
         for my $lib ($self->all_sublibraries) {
@@ -51,6 +60,20 @@ class Template::SX::Library::Group {
         } @names;
 
         return wantarray ? @functions : $functions[-1];
+    }
+
+    method get_setter (Str @names) {
+        
+        my @etter = map {
+
+            my $name = $_;
+            my $lib  = $self->find_sublibrary(sub { $_->has_setter($name) });
+
+            $lib ? $lib->get_setter($name) : undef;
+
+        } @names;
+
+        return wantarray ? @setter : $setter[-1];
     }
 
     method get_syntax (Str @names) {

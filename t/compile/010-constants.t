@@ -1,6 +1,8 @@
 #!/usr/bin/env perl
+use strict;
+use warnings;
 use Template::SX::Test qw( :all );
-use Test::More;
+use Test::Most;
 
 my @constants = (
     ['23',      23,         'integer constant'],
