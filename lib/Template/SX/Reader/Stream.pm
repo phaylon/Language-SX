@@ -276,8 +276,14 @@ class Template::SX::Reader::Stream {
         my $rx_na   = $rx_join->(@not_allowed);
         my $rx_beg  = $rx_join->(@not_allowed, 0..9);
         my $rx      = qr/ 
-            (?: $rx_beg . ) 
-            (?: $rx_na  . )* 
+            (?:
+              (?:
+                (?: $rx_beg . ) 
+                (?: $rx_na  . )* 
+              )
+                |
+              \#
+            )
         /x;
 
         my $rx_old = qr/

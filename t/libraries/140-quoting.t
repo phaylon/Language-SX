@@ -39,6 +39,11 @@ my @quoted = (
         { x => 3 },
         'simply quoted hash',
     ],
+
+    [   q{'(1 2 ,(3 4) ,@(5))},
+        [1, 2, [bareword('unquote'), [3, 4]], [bareword('unquote-splicing'), [5]]],
+        'unquote inside of full quote',
+    ],
 );
 
 my @quasiquoted = (
@@ -102,6 +107,11 @@ with_libs(sub {
     is_deeply sx_run(q/ `(html (head (title ,title)) (body { class "content" } ,message)) /, { title => 'Test', message => 'Hello' }),
         [bareword('html'), [bareword('head'), [bareword('title'), 'Test']], [bareword('body'), { class => 'content' }, 'Hello']],
         'simple html test';
+
+    throws_ok { sx_load ',foo' } E_SYNTAX, 'unquoting outside of quoting environment raises exception';
+    like $@, qr/quoted environment/, 'correct error message';
+    is $@->location->{line}, 1, 'correct line number';
+    is $@->location->{char}, 1, 'correct char number';
 
 }, 'Quoting', 'Data::Numbers', 'ScopeHandling');
 

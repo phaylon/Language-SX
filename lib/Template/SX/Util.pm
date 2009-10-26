@@ -24,6 +24,7 @@ sub apply_scalar {
 
     my @args = @$args;
     my $result;
+    my $shadow_call = $Template::SX::SHADOW_CALL || sub { my $op = shift; goto $op };
 
     try {
 
@@ -36,11 +37,29 @@ sub apply_scalar {
 
             my $method = shift @args;
 
-            $result = scalar $op->$method(@args);
+#            $result = scalar $op->
+#            $result = scalar $op->$method(@args);
+            unless (ref $method eq 'CODE') {
+                my $found_method = $op->can($method)
+                    or E_PROTOTYPE->throw(
+                        class       => E_APPLY,
+                        attributes  => { 
+                            message => sprintf(
+                                q(unable to find a method named '%s' on instance of '%s'),
+                                $method,
+                                blessed($op),
+                            ),
+                        },
+                    );
+                $method = $found_method;
+            }
+
+            $result = scalar $shadow_call->($method, $op, @args);
         }
         elsif (ref $op eq 'CODE') {
 
-            $result = scalar $op->(@args);
+            $result = scalar $shadow_call->($op, @args);
+#            $result = scalar $op->(@args);
         }
         else {
             

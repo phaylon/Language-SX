@@ -30,5 +30,5 @@ class Template::SX::Exception::Prototype is dirty {
         $self->class->throw(%{ $self->attributes }, location => $loc);
     }
 
-    method as_string (Any @) { $self->attributes->{message} }
+    sub as_string { $_[0]->attributes->{message} }
 }

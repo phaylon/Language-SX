@@ -2,83 +2,77 @@
 BASIC:
 
     class application
-    (set! x 23)
-    (map ls f)
-    (grep ls f)
-    (list ...)
-    (hash ...)
     (cond ((if1 then1)
            (if2 => then2withresult)))
     (object? foo)
-    (hash? bar)
-    (list? baz)
-    (join sep ls)
-    (split /\s+/ str)
-    (append ls1 ls2)
-    (== 1 2)
-    (eq? "x" "y")
-    < > <= >=
-    (sort ls fun)
-    and, and-def, 
-    or, or-def, 
-    not, not-def,
-    (any? '(1 2 3) odd?)
-    (all? '(2 3 4) (-> (< _ 10)))
-    (one? ls fun)
-    (none? ls fun)
-    (first ls f)
-    (hash-map hs f)
-    (hash-grep hs f)
+    (split rx/\s+/ str)
     (hash->pairs h)
+    (pairs->hash)
+    (pairs->list)
+    (list->pairs)
     (pairs->hash ps)
-    (flatten h1 h2 a1 a2)
-    (head ls)
-    (tail ls)
-    (zip fun ls1 ls2 ls3 ...)
-    (unzip ls fun)
-    (keys hs)
-    (keys ls)
-    (values hs)
-    (values ls)
-    (string s1 s2 s3 ...)
-    (partition ls fun-returning-str)
-    (reduce ls fun)
-    (unless cond then alter)
     (begin ...)
-    (matches? /rx/ str)
-    (match /rx/ str)
-    (match-all /rx/ str)
-    (replace /rx/ fun str)
+    (matches? rx/rx/ str)
+    (match rx/rx/ str)
+    (match-all rx/rx/ str)
+    (replace rx/rx/ fun str)
     (regex rx1 rx2 ...)
+    (error "invalid something")
+    (catch (λ () ...) (λ (e) ...))
+    (thunk ...)
+    (for `(1 2 3) say)
     (quotemeta str1 str2 ...)
     (curry fun 1 2 ...)
     (rcurry fun 1 2 ...)
-    (uniq ls ...)
-    (gather (lambda (foo) (foo 5)))
-    (while defined? (row (rs :next))
-      (say (at row :name)))
-    turn () '() [] '[] into empty list
-    (meta-of obj)
-    λ
-    (min ...)
-    (max ...)
-    (env 'HOME)
+    (# ...)
+    (while defined? 
+           (thunk (rs :next))
+           (-> (say "name: " (_ :name))))
     
     ; should work
     ; die if reserved var name passed in
     (let ((let 23))
       (+ let let))
 
+    (module 
+      (arguments:   foo bar baz . optional arg)
+      (exports:     x1 x2 (group: x3 x4))
+      (libraries:   Core))
+    (import "foo/bar.sx" { foo: 23 } :all)
+    (include "foo/bar.sx" { bar: 23 })
+
+    (import-types
+      (Moose        (Str as: MooseStr) ArrayRef HashRef)
+      (Path::Class  File Dir))
+    (define StrList (ArrayRef Str))
+    (coerce value MyType)
+    (is? value MyType)
+    (define Foo (subtype Int where: odd?))
+    (define-subtype Foo as: Int where odd?)
+    (assert Type value) ; blows up if fail
+
+    (lambda ([Str n] [Int m]) (list n m))
+
+
+
+
+OBJECTS:
+
+    ???
+
 
 
 
 EXTENDED
 
+
     (# ...)
-    (-> (* _ 2))
-    (at hash :foo 0)            ; getter, returns accessor handler for set!
-    (set! (at ...) ...          ; setter
     (with-input-from *in* ...)
+    (zip fun ls1 ls2 ls3 ...)
+    (unzip ls fun)
+    (meta-of obj)
+    (env 'HOME)
+    (partition ls fun-returning-str)
     (with-output-to *out* ...)
     (with-errors-to *err* ...)
     (with-input-from-string str ...)
@@ -100,10 +94,6 @@ EXTENDED
       (if (== x 0)
         (say "zero")
         (foo (-1 x))))
-    (import "foo.sx" '(foo bar))
-    (include "bar.inc.sx")
-    (module "foo/bar" (exports foo bar) (receives baz qux))
-    (export foo bar)
     (lambda-case
       ((x) x)
       ((x y) (+ x y))

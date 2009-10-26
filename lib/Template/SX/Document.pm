@@ -22,6 +22,11 @@ class Template::SX::Document
         default     => SCOPE_FUNCTIONAL,
     );
 
+    has source_name => (
+        is          => 'ro',
+        isa         => Str,
+    );
+
     my $CoreLib = 'Template::SX::Library::Core';
 
     has libraries => (
@@ -98,8 +103,8 @@ class Template::SX::Document
         return $code;
     }
 
-    method run (HashRef :$vars = {}) {
-        return $self->loaded_callback->(%$vars);
+    method run (HashRef :$vars = {}, Bool :$persist) {
+        return $self->loaded_callback->($persist ? $vars : (%$vars));
     }
 
     method new_from_stream (ClassName $class: Template::SX::Reader::Stream $stream, @for_new) {

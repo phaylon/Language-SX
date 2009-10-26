@@ -60,11 +60,47 @@ my @try = (
 
 #   TODO works, but needs sorting to be tested
 #    ['(keys { x: 2 y: 3 })',        [qw( x y )],        'keys on hash'],
-    ['(keys `(2 3 4))',             [0, 1, 2],          'keys on list'],
-#    ['(values { x: 2 y: 3 })',      [2, 3],             'values on hash'],
-    ['(values `(2 3 4))',           [2, 3, 4],          'values on list'],
-    ['(values { x: 2 y: 3 } `(y))', [3],                'values slice on hash'],
-    ['(values `(2 3 4) `(1 2))',    [3, 4],             'values slice on list'],
+    ['(keys `(2 3 4))',                         [0, 1, 2],          'keys on list'],
+    ['(sort (values { x: 2 y: 3 }) <=>)',       [2, 3],             'values on hash'],
+    ['(values `(2 3 4))',                       [2, 3, 4],          'values on list'],
+    ['(values { x: 2 y: 3 } `(y))',             [3],                'values slice on hash'],
+    ['(values `(2 3 4) `(1 2))',                [3, 4],             'values slice on list'],
+
+    ['(length `(1 2 3 4))',     4,      'list length'],
+    ['(length { x: 1 y: 2 })',  2,      'hash length'],
+    ['(length "foobar")',       6,      'string length'],
+
+    ['(defined?)',              undef,  'defined? without arguments'],
+    ['(defined? 0)',            1,      'defined? with single false but defined argument'],
+    ['(defined? #f)',           undef,  'defined? with single undefined argument'],
+    ['(defined? 0 #f 3)',       undef,  'defined? with mixed arguments'],
+    ['(defined? 1 2 0 3)',      1,      'defined? with all defined but some false arguments'],
+
+    ['(reverse `(1 2 3))',      [3, 2, 1],          'reversing a list'],
+    ['(reverse { x: 3 y: 4 })', {qw( 3 x 4 y )},    'reversing a hash'],
+    ['(reverse "foobar")',      'raboof',           'reversing a string'],
+
+    [   q{
+            (define hs { x: 2 y: 3 z: 4 })
+            (define ls1 `(1 2 3 4))
+            (define ls2 (append ls1))
+            (list
+              (set! (values hs `(x z)) `(8 9))
+              (set! (values ls1) `(8 9))
+              (set! (values ls2 `(1 2)) `(8 9))
+              hs
+              ls1
+              ls2)
+        },
+        [   [2, 4],
+            [1, 2, 3, 4],
+            [2, 3],
+            { x => 8, y => 3, z => 9 },
+            [8, 9],
+            [1, 8, 9, 4],
+        ],
+        'setting compound values',
+    ],
 );
 
 my @fails = (
@@ -79,6 +115,69 @@ my @fails = (
     ['(values 23)',         [E_TYPE,        qr/hash or list/],      'values with non-compound argument'],
     ['(values {} 7)',       [E_TYPE,        qr/list/],              'values with non-list keys argument'],
     ['(values {} `() 8)',   [E_PARAMETER,   qr/argument/],          'values with too many arguments'],
+    ['(values {} `(#f))',   [E_TYPE,        qr/undefined/],         'values of hash with undefined entry in key list'],
+    ['(values `() `(#f))',  [E_TYPE,        qr/undefined/],         'values of list with undefiend entry in index list'],
+
+    ['(length)',            [E_PARAMETER,   qr/not enough/],        'length without aguments'],
+    ['(length "x" "y")',    [E_PARAMETER,   qr/too many/],          'length with more than one argument'],
+    ['(length `foo)',       [E_TYPE,        qr/unable/],            'length of unknown item'],
+
+    ['(reverse)',           [E_PARAMETER,   qr/not enough/],        'reverse without arguments'],
+    ['(reverse 2 3)',       [E_PARAMETER,   qr/too many/],          'reverse with more than one argument'],
+    ['(reverse `x)',        [E_TYPE,        qr/unable to/],         'reverse with non-reversible argument'],
+
+    [   '(set! (values) `())',
+        [E_PARAMETER,   qr/not enough/, 1, 7],
+        'setting values without setter arguments',
+    ],
+    [   '(set! (values {}) `())',
+        [E_PARAMETER,   qr/list of keys/, 1, 7],
+        'setting hash values without setter key list argument',
+    ],
+    [   '(set! (values {} `() 3) `())',
+        [E_PARAMETER,   qr/too many/, 1, 7],
+        'setting hash values with more than two setter arguments',
+    ],
+    [   '(set! (values `() `() 3) `())',
+        [E_PARAMETER,   qr/too many/, 1, 7],
+        'setting list values with more than two setter arguments',
+    ],
+    [   '(set! (values 3 `()) `())',
+        [E_TYPE,        qr/compound/, 1, 7],
+        'setting values of a non-compound item',
+    ],
+    [   '(set! (values `() 3) `())',
+        [E_TYPE,        qr/list/, 1, 7],
+        'setting list values with a non-list setter argument',
+    ],
+    [   '(set! (values {} 3) `())',
+        [E_TYPE,        qr/list/, 1, 7],
+        'setting hash values with a non-list setter argument',
+    ],
+    [   '(set! (values {} `()) 3)',
+        [E_TYPE,        qr/list/, 1, 1],
+        'setting hash values with a non-list argument',
+    ],
+    [   '(set! (values `() `()) 3)',
+        [E_TYPE,        qr/list/, 1, 1],
+        'setting list values with a non-list argument',
+    ],
+    [   '(set! (values `() `(3 4)) `(3))',
+        [E_PARAMETER,   qr/unable to save/, 1, 1],
+        'setting three list elements to one value',
+    ],
+    [   '(set! (values {} `(x y)) `(3))',
+        [E_PARAMETER,   qr/unable to save/, 1, 1],
+        'setting three hash slots to one value',
+    ],
+    [   '(set! (values {} `(x #f)) `(3 4))',
+        [E_TYPE,        qr/undefined/, 1, 7],
+        'setting hash values with an undefined key',
+    ],
+    [   '(set! (values `() `(3 #f)) `(3 4))',
+        [E_TYPE,        qr/undefined/, 1, 7],
+        'setting list values with an undefined key',
+    ],
 );
 
 with_libs(sub {
@@ -86,6 +185,6 @@ with_libs(sub {
     is_result @$_ for @try;
     is_error  @$_ for @fails;
 
-}, qw( Data::Common Quoting ));
+}, qw( Data::Common Quoting ScopeHandling Data::Numbers Data::Lists ));
 
 done_testing;

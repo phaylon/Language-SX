@@ -35,7 +35,8 @@ sub is_result {
     my ($code, $expect, $name) = @_;
     my $res = $SX->run('string', ref($code) ? ($code->[0], 'vars', $code->[1]) : $code);
 #    pp $res;
-    is_deeply $res, $expect, "correct result for $name";
+    is_deeply($res, $expect, "correct result for $name")
+        or note 'received: ', pp($res);
 }
 
 sub is_error {
@@ -49,7 +50,7 @@ sub is_error {
 
 sub sx_read {
     my $str = shift;
-    return $SX->read_string($str);
+    return $SX->read(string => $str);
 }
 
 sub sx_load {

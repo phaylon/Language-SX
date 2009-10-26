@@ -8,6 +8,7 @@ use MooseX::Types -declare => [qw(
     PairList
     Location
     QuoteState
+    SourceType
 )];
 
 use MooseX::Types::Structured qw(
@@ -37,6 +38,8 @@ class_type $_ for map "Template::SX::$_", qw(
     Document::Cell::Application
     Exception
     Exception::Prototype
+    Exception::Syntax
+    Exception::Syntax::EndOfStream
     Library
 );
 
@@ -55,6 +58,8 @@ subtype Location, as Dict[
     context => Str,
     offset  => Int,
 ];
+
+enum SourceType, qw( string file handle );
 
 subtype Token, as Tuple[Str, Any, Location];
 

@@ -66,7 +66,13 @@ class Template::SX::Library::Quoting extends Template::SX::Library {
         E_SYNTAX->throw(message => 'only single item can be unquoted at a time', location => $cell->location)
             unless @args == 1;
 
+        E_SYNTAX->throw(message => 'illegal unquote outside of quasi-quoted environment', location => $cell->location)
+            unless $inf->quote_state;
+
         my $unquoted = $args[0];
+
+        return $unquoted->compile($inf, SCOPE_STRUCTURAL)
+            unless $inf->quote_state eq QUOTE_QUASI;
 
         my $new_inf = $inf->clone_without_quote_state;
         return $unquoted->compile($new_inf, SCOPE_FUNCTIONAL);

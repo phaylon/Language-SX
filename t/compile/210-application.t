@@ -43,7 +43,9 @@ with_libs(sub {
     is $@->location->{line}, 1, 'correct line number';
     is $@->location->{char}, 2, 'correct char number';
 
-    throws_ok { sx_run q{('foo :thismethoddoesnotexist)}, {} } E_CAPTURED, 'unknown method call raises exception';
+    throws_ok { sx_run q{('foo :thismethoddoesnotexist)}, {} } E_APPLY, 'unknown method call raises exception';
+    like $@, qr/thismethoddoesnotexist/, 'error message contains method name';
+    like $@, qr/Runtime::Bareword/, 'error message contains object class';
 
 }, qw( Quoting ));
 

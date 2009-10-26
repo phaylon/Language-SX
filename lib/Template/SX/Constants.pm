@@ -28,6 +28,7 @@ use constant {
 
     E_SYNTAX            => 'Template::SX::Exception::Syntax',
     E_RESERVED          => 'Template::SX::Exception::Syntax::Reserved',
+    E_END_OF_STREAM     => 'Template::SX::Exception::Syntax::EndOfStream',
     E_UNBOUND           => 'Template::SX::Exception::UnboundVar',
     E_INTERNAL          => 'Template::SX::Exception::Internal',
     E_TYPE              => 'Template::SX::Exception::Type',
@@ -62,6 +63,7 @@ use Sub::Exporter -setup => {
         E_APPLY
         E_PROTOTYPE
         E_PARAMETER
+        E_END_OF_STREAM
 
         QUOTE_FULL
         QUOTE_QUASI

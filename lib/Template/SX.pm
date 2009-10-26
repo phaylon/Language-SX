@@ -8,13 +8,16 @@ class Template::SX {
     use MooseX::Types::Moose    qw( CodeRef Str ArrayRef );
     use MooseX::MultiMethods;
 
+    our $VERSION = '0.001';
+
     has reader => (
         is          => 'ro', 
         isa         => 'Template::SX::Reader', 
         required    => 1, 
         lazy_build  => 1,
         handles     => {
-            read_string => 'read',
+            _document_from_string   => 'read',
+            _stream_from_string     => 'create_stream',
         },
     );
 
@@ -23,7 +26,7 @@ class Template::SX {
         isa         => LibraryList,
         required    => 1,
         coerce      => 1,
-        default     => sub { to_LibraryList [qw( Core )] },
+        default     => sub { require Template::SX::Library::Core; [Template::SX::Library::Core->new] },
     );
 
     has document_traits => (
@@ -46,17 +49,22 @@ class Template::SX {
         );
     }
 
-    multi method read (Str :$string) {
-        return $self->read_string($string);
+    method all_function_names { map { ($_->function_names) } @{ $self->default_libraries } }
+    method all_syntax_names   { map { ($_->syntax_names) }   @{ $self->default_libraries } }
+
+
+    method read (SourceType $type, Any $source, Str :$source_name?) {
+        return $self->can("_read_${type}")->($self, $source, $source_name || ());
     }
 
-    multi method load (Str :$string) {
-        return $self->read_string($string)->load;
+    method _read_string (Str $source, Str $source_name?) {
+        return $self->_document_from_string($source, $source_name || ());
     }
 
-    multi method run (Str :$string, HashRef :$vars = {}) {
-        
-        my $code = $self->load(string => $string);
-        return scalar $code->(%$vars);
+
+    method run (SourceType $type, Any $source, HashRef :$vars = {}, Bool :$persist, Str :$source_name?) {
+
+        my $doc = $self->read($type, $source, $source_name ? (source_name => $source_name) : ());
+        return $doc->run(vars => $vars, persist => $persist);
     }
 }

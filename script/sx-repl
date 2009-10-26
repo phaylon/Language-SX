@@ -1,0 +1,11 @@
+#!/usr/bin/env perl
+use strict;
+use warnings;
+use encoding::stdio ':locale';
+
+use FindBin;
+use lib "$FindBin::Bin/../lib";
+use Template::SX::REPL;
+
+my $repl = Template::SX::REPL->new;
+$repl->run;

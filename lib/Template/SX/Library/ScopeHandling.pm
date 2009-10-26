@@ -4,7 +4,10 @@ class Template::SX::Library::ScopeHandling extends Template::SX::Library {
     use MooseX::MultiMethods;
     use MooseX::ClassAttribute;
     use CLASS;
+    use utf8;
 
+    use TryCatch;
+    use Sub::Name;
     use Scalar::Util                qw( blessed );
     use Data::Dump                  qw( pp );
     use Template::SX::Constants     qw( :all );
@@ -15,6 +18,121 @@ class Template::SX::Library::ScopeHandling extends Template::SX::Library {
 
     class_has '+function_map';
     class_has '+syntax_map';
+
+    CLASS->add_syntax('set!', sub {
+        my $self = shift;
+        my $inf  = shift;
+        my $cell = shift;
+
+        E_SYNTAX->throw(
+            message     => 'set! always expects 2 arguments, not ' . scalar(@_),
+            location    => $cell->location,
+        ) unless @_ == 2;
+
+        $self->_compile_setter($inf, $cell, @_);
+    });
+
+    multi method _compile_setter (Object $inf, Object $cell, Template::SX::Document::Bareword $var, Object $source) {
+
+        return $inf->render_call(
+            library => $CLASS,
+            method  => 'make_variable_setter',
+            args    => {
+                name    => pp($var->value),
+                source  => $source->compile($inf, SCOPE_FUNCTIONAL),
+            },
+        );
+    }
+
+    multi method _compile_setter (Object $inf, Object $cell, Template::SX::Document::Cell::Application $special, Object $source) {
+
+        E_SYNTAX->throw(
+            message     => 'illegal empty setter specification',
+            location    => $special->location,
+        ) unless $special->node_count;
+
+        my ($setter, @setter_args) = $special->all_nodes;
+
+        E_SYNTAX->throw(
+            message     => 'first item in setter specification must be a bareword naming the setter',
+            location    => $setter->location,
+        ) unless $setter->isa('Template::SX::Document::Bareword');
+
+        my $library = $inf->find_library_with_setter($setter->value)
+            or E_SYNTAX->throw(
+                message     => sprintf(q(unknown setter '%s' in set! target specification), $setter->value),
+                location    => $setter->location,
+            );
+
+        return $inf->render_call(
+            library => $CLASS,
+            method  => 'make_runtime_setter',
+            args    => {
+                source          => $source->compile($inf, SCOPE_FUNCTIONAL),
+                setter          => $inf->render_call(
+                    library     => ref($library),
+                    method      => 'get_setter',
+                    args        => [pp($setter->value)],
+                ),
+                location        => pp($cell->location),
+                set_location    => pp($special->location),
+                arguments   => sprintf(
+                    '[%s]', join(
+                        ', ',
+                        map { $_->compile($inf, SCOPE_FUNCTIONAL) } @setter_args
+                    ),
+                ),
+            },
+        );
+    }
+
+    method make_runtime_setter (
+        CodeRef             :$setter, 
+        CodeRef             :$source, 
+        ArrayRef[CodeRef]   :$arguments, 
+        Location            :$location, 
+        Location            :$set_location
+    ) {
+
+        return subname SET_RUNTIME => sub {
+            my $env = shift;
+            my $val;
+
+            try {
+                my $cb;
+
+                try {
+                    $cb = $setter->(map { $_->($env) } @$arguments);
+                }
+                catch (Template::SX::Exception::Prototype $e) {
+                    $e->throw_at($set_location);
+                }
+                catch (Any $e) {
+                    die $e;
+                }
+
+                $val = $source->($env);
+                $val = $cb->($val);
+            }
+            catch (Template::SX::Exception::Prototype $e) {
+                $e->throw_at($location);
+            }
+            catch (Any $e) {
+                die $e;
+            }
+
+            return $val;
+        };
+    }
+
+    method make_variable_setter (Str :$name, CodeRef :$source) {
+
+        return subname SET_VAR => sub {
+            my $env = shift;
+
+            $env->{vars}{ $name } = $source->($env);
+        };
+    }
 
     my $LetSyntax = sub {
         my ($name, $maker, %args) = @_;
@@ -204,7 +322,7 @@ class Template::SX::Library::ScopeHandling extends Template::SX::Library {
 
     method make_lexical_recursive_scope (ArrayRef[Tuple[Str, CodeRef]] :$vars, CodeRef :$sequence) {
 
-        return sub {
+        return subname LEX_RECURSIVE => sub {
             my $env     = shift;
             my $new_env = {
                 parent  => $env,
@@ -222,7 +340,7 @@ class Template::SX::Library::ScopeHandling extends Template::SX::Library {
 
     method make_lexical_sequence_scope (ArrayRef[Tuple[Str, CodeRef]] :$vars, CodeRef :$sequence) {
 
-        return sub {
+        return subname LEX_SEQUENCE => sub {
             my $env     = shift;
             my $new_env = $env;
 
@@ -242,7 +360,7 @@ class Template::SX::Library::ScopeHandling extends Template::SX::Library {
 
     method make_lexical_scope (ArrayRef[Tuple[Str, CodeRef]] :$vars, CodeRef :$sequence) {
 
-        return sub {
+        return subname LEX => sub {
             my $env     = shift;
             my $new_env = { 
                 parent  => $env,
@@ -281,6 +399,32 @@ class Template::SX::Library::ScopeHandling extends Template::SX::Library {
         return $self->_render_lambda_from_signature($inf, $signature, $inf->render_sequence(\@body));
     });
 
+    CLASS->add_syntax('λ' => CLASS->get_syntax('lambda'));
+
+    CLASS->add_syntax('->' => sub {
+        my $self = shift;
+        my $inf  = shift;
+        my $cell = shift;
+
+        E_SYNTAX->throw(
+            message     => 'single argument function shortcut expects at least one body expression',
+            location    => $cell->location,
+        ) unless @_;
+
+        return $inf->render_call(
+            library => $CLASS,
+            method  => 'make_lambda_generator',
+            args    => {
+                sequence    => $inf->render_sequence([@_]),
+                has_max     => 1,
+                has_min     => 1,
+                max         => 1,
+                min         => 1,
+                positionals => '[qw( _ )]',
+            },
+        );
+    });
+
     method _render_lambda_from_signature (Object $inf, Object $signature, Str $sequence) {
 
         my $deparsed = $self->deparse_signature($inf, $signature);
@@ -310,7 +454,7 @@ class Template::SX::Library::ScopeHandling extends Template::SX::Library {
 
             return sub {
 
-                # FIXME throw exceptions
+                # FIXME throw parameter prototype exceptions
                 die "not enough arguments"  if $has_min and $min > @_;
                 die "too many arguments"    if $has_max and $max < @_;
 

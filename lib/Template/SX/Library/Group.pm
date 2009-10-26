@@ -18,6 +18,9 @@ class Template::SX::Library::Group {
         },
     );
 
+    method function_names { map { ($_->function_names) } $self->all_sublibraries }
+    method syntax_names   { map { ($_->syntax_names) }   $self->all_sublibraries }
+
     method additional_inflator_traits {
         return $self->map_sublibraries(sub { ($_->additional_inflator_traits) });
     }
@@ -64,7 +67,7 @@ class Template::SX::Library::Group {
 
     method get_setter (Str @names) {
         
-        my @etter = map {
+        my @setter = map {
 
             my $name = $_;
             my $lib  = $self->find_sublibrary(sub { $_->has_setter($name) });

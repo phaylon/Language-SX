@@ -4,6 +4,7 @@ use warnings;
 use Template::SX::Constants qw( :all );
 use Template::SX::Test      qw( :all );
 use Test::Most;
+use utf8;
 
 my @try = (
     ['(define foo 23) (define bar 42) (+ foo bar)',     65,     'succeeding definitions'],
@@ -76,6 +77,35 @@ push @try, [q{
       (bar 23))
 
 }, [24, 22], 'simple let-rec'];
+
+push @try, [q{
+
+    (let ((kons (λ (n m) (λ (p) (p n m))))
+          (kar  (λ (k) (k (λ (n m) n))))
+          (kdr  (λ (k) (k (λ (n m) m)))))
+      (let ((foo (kons (kons 1 2)
+                       (kons 3 4))))
+        `(,(kar (kar foo))
+          ,(kar (kdr foo))
+          ,(kdr (kar foo))
+          ,(kdr (kdr foo)))))
+
+
+}, [1, 3, 2, 4], 'lambda unicode shortcut'];
+
+push @try, [q{
+
+    ((-> (+ (* _ 2) (* _ 3))) 3)
+
+}, 15, 'single argument lambda shortcut'];
+
+push @try, [q{
+
+    (define x)
+    (set! x 23)
+    x
+
+}, 23, 'setting a variable'];
 
 with_libs(sub {
 
@@ -155,6 +185,11 @@ with_libs(sub {
         is $@->location->{line}, 1, 'correct line number';
         is $@->location->{char}, 1, 'correct char number';
     }
+
+    throws_ok { sx_load '(->)' } E_SYNTAX, 'single argument lambda shortcut without body raises syntax error';
+    like $@, qr/expression/, 'correct error message';
+    is $@->location->{line}, 1, 'correct line number';
+    is $@->location->{char}, 1, 'correct char number';
 
     my @let_invalid = (
 

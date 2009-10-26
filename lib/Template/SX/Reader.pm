@@ -19,16 +19,25 @@ class Template::SX::Reader {
         default     => sub { [] },
     );
 
-    method read (Str $string) {
+    method create_stream (Str $string, Str $source_name?) {
 
         require Template::SX::Reader::Stream;
-        my $stream = Template::SX::Reader::Stream->new(content => $string);
+        return Template::SX::Reader::Stream->new(
+            content     => $string,
+          ( $source_name ? (source_name => $source_name) : () ),
+        );
+    }
+
+    method read (Str $string, Str $source_name?) {
+
+        my $stream = $self->create_stream($string, $source_name || ());
 
         require Template::SX::Document;
         my $doc = Template::SX::Document->new_from_stream(
             $stream, 
             libraries   => [@{ $self->document_libraries }],
             traits      => [@{ $self->document_traits }],
+          ( $source_name ? (source_name => $source_name) : () ),
         );
 
         return $doc;

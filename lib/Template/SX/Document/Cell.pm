@@ -13,7 +13,8 @@ class Template::SX::Document::Cell
     my %CloserFor = @Pairs;
     my %Name      = qw/ ( normal ) normal [ square ] square { curly } curly /;
 
-    Class::MOP::load_class(E_SYNTAX);
+    Class::MOP::load_class($_)
+        for E_SYNTAX, E_END_OF_STREAM;
 
     method compile (Object $inf, Scope $scope) {
 
@@ -69,7 +70,7 @@ class Template::SX::Document::Cell
             $self->add_node(my $node = $doc->new_node_from_stream($stream, $token));
         }
 
-        E_SYNTAX->throw(
+        E_END_OF_STREAM->throw(
             location => $loc,
             message  => 'unexpected end of stream before cell was closed',
         );

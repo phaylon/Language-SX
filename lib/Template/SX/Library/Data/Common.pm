@@ -18,7 +18,92 @@ class Template::SX::Library::Data::Common extends Template::SX::Library {
     class_has '+function_map';
     class_has '+setter_map';
 
+    CLASS->add_setter(
+        'values' => CLASS->wrap_function('values', { min => 1, max => 2, types => [qw( compound list )] }, sub {
+            my ($target, $keys) = @_;
+
+            E_PROTOTYPE->throw(
+                class       => E_PARAMETER,
+                attributes  => { message => 'setting hash values requires a list of keys' },
+            ) if not($keys) and ref $target eq 'HASH';
+
+            if ($keys) {
+    
+                for my $idx (0 .. $#$keys) {
+
+                    E_PROTOTYPE->throw(
+                        class       => E_TYPE,
+                        attributes  => { message => sprintf 'value setter key list item %d is undefined', $idx + 1 },
+                    ) unless defined $keys->[ $idx ];
+                }
+            }
+
+            return sub {
+                my $new = shift;
+
+                E_PROTOTYPE->throw(
+                    class       => E_TYPE,
+                    attributes  => { message => 'values setter expects a list of new values' },
+                ) unless ref $new eq 'ARRAY';
+
+                E_PROTOTYPE->throw(
+                    class       => E_PARAMETER,
+                    attributes  => { message => sprintf 'unable to save %d values under %d keys', scalar(@$new), scalar(@$keys) },
+                ) if $keys and @$new != @$keys;
+
+                my @old;
+
+                if (ref $target eq 'HASH') {
+                    @old = @{ $target }{ @$keys };
+                    @{ $target }{ @$keys } = @$new;
+                }
+                else {
+                    if ($keys) {
+                        @old = @{ $target }[ @$keys ];
+                        @{ $target }[ @$keys ] = @$new;
+                    }
+                    else {
+                        @old = @$target;
+                        @$target = @$new;
+                    }
+                }
+
+                return \@old;
+            };
+        }),
+    );
+
     CLASS->add_functions(
+        'defined?' => sub {
+            return undef unless @_;
+            return undef if grep { not defined } @_;
+            return 1;
+        },
+        'reverse' => CLASS->wrap_function('reverse', { min => 1, max => 1, types => [qw( any )] }, sub {
+            my $item = shift;
+
+            return(
+                ( ref($item) eq 'HASH' )                  ? { reverse %$item }
+              : ( ref($item) eq 'ARRAY' )                 ? [ reverse @$item ]
+              : ( not(ref($item)) and defined($item) )    ? reverse("$item")
+              : E_PROTOTYPE->throw(
+                    class       => E_TYPE,
+                    attributes  => { message => sprintf(q(unable to reverse '%s'), $item) },
+                )
+            );
+        }),
+        'length' => CLASS->wrap_function('length', { min => 1, max => 1 }, sub {
+            my $item = shift;
+
+            return
+                ( ref($item) eq 'ARRAY' )   ? scalar(@$item)
+              : ( ref($item) eq 'HASH' )    ? scalar(keys %$item)
+              : ( not ref $item )           ? length($item)
+              : E_PROTOTYPE->throw(
+                    class       => E_TYPE,
+                    attributes  => { message => sprintf(q(unable to calculate length from '%s'), $item) },
+                );
+        }),
         'empty?' => sub {
 
             for my $n (@_) {
@@ -68,6 +153,17 @@ class Template::SX::Library::Data::Common extends Template::SX::Library {
                 class       => E_TYPE,
                 attributes  => { message => 'key list argument to values must be a list' },
             ) if defined $keys and $keys_ref ne 'ARRAY';
+
+            if ($keys) {
+
+                for my $idx (0 .. $#$keys) {
+
+                    E_PROTOTYPE->throw(
+                        class       => E_TYPE,
+                        attributes  => { message => sprintf 'values key list item %d is undefined', $idx + 1 },
+                    ) unless defined $keys->[ $idx ];
+                }
+            }
 
             E_PROTOTYPE->throw(
                 class       => E_TYPE,

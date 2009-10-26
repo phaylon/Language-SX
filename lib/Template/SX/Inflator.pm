@@ -100,6 +100,27 @@ class Template::SX::Inflator {
         return undef;
     }
 
+    method find_library_with_setter (Str $name) {
+        
+        for my $lib ($self->all_libraries) {
+
+            if (my $found = $lib->has_setter($name)) {
+
+                return $found;
+            }
+        }
+
+        return undef;
+    }
+
+    method find_library_setter (Str $name) {
+        
+        my $library = $self->find_library(sub { $_->has_setter($name) })
+            or return undef;
+
+        return scalar $library->get_setter($name);
+    }
+
     method library_by_name (Str $libname) {
 
         Class::MOP::load_class($libname);
@@ -155,7 +176,7 @@ class Template::SX::Inflator {
 
                 # the nodes
                 sprintf(
-                    '(do { my $root = %s; sub { $root->({ vars => { @_ }}) } })',
+                    '(do { my $root = %s; Sub::Name::subname q(ENTER_SX), sub { $root->({ vars => (@_ == 1 ? $_[0] : +{ @_ }) }) } })',
                     $self->render_call(
                         method  => 'make_sequence',
                         args    => {
@@ -216,7 +237,7 @@ class Template::SX::Inflator {
         return @compiled;
     }
 
-    method render_call (Str :$method, HashRef[Str] :$args, Str :$library?) {
+    method render_call (Str :$method, HashRef[Str] | ArrayRef[Str] :$args, Str :$library?) {
 
         return sprintf(
             '$inf->%s(%s)',
@@ -229,9 +250,12 @@ class Template::SX::Inflator {
                 : $method
             ),
             join(', ',
-                map {
-                    join(' => ', pp($_), $args->{ $_ })
-                } keys %$args
+                ( ref $args eq 'HASH' )
+                ? ( map {
+                        join(' => ', pp($_), $args->{ $_ })
+                    } keys %$args
+                  ) 
+                : @$args
             ),
         );
     }
@@ -327,11 +351,24 @@ class Template::SX::Inflator {
         return $self->make_constant(value => $value);
     }
 
+    method _build_shadow_call (Location $loc) {
+
+        return eval join "\n",
+            'Sub::Name::subname q(APPLY), sub { my $op = shift;',
+                sprintf('#line %d "%s"', $loc->{line}, $loc->{source}),
+                'return scalar $op->(@_);',
+            '}';
+    }
+
     method make_application (CodeRef :$apply, ArrayRef[CodeRef] :$arguments, HashRef :$location, :$env) {
+
+        my $shadow_call = $self->_build_shadow_call($location);
 
         return subname APPLICATION => sub {
             my $env = shift;
             my $result;
+
+            local $Template::SX::SHADOW_CALL = $shadow_call;
 
             try {
                 $result = apply_scalar 
@@ -343,56 +380,6 @@ class Template::SX::Inflator {
             }
             catch (Any $e) {
                 die $e;
-            }
-
-            return $result;
-        };
-    }
-
-    method __make_application (CodeRef :$apply, ArrayRef[CodeRef] :$arguments, HashRef :$location, :$env) {
-
-        return subname APPLICATION => sub {
-            my $env = shift;
-            my $evaluated_apply = $apply->($env);
-            my @evaluated_args  = map { scalar $_->($env) } @$arguments;
-
-            my $result;
-            try {
-
-                if (my $class = blessed($evaluated_apply)) {
-                    
-                    E_APPLY->throw(
-                        message     => "missing method argument for method call on $class instance",
-                        location    => $location,
-                    ) unless @evaluated_args;
-
-                    my $method = shift @evaluated_args;
-                    $result = scalar $evaluated_apply->$method(@evaluated_args);
-                }
-                elsif (ref $evaluated_apply eq 'CODE') {
-
-                    $result = scalar $evaluated_apply->(map { $_->($env) } @$arguments);
-                }
-                else {
-
-                    E_APPLY->throw(
-                        message     => 'invalid applicant type: ' . ref($evaluated_apply),
-                        location    => $location,
-                    );
-                }
-            } 
-            catch (Template::SX::Exception $e) {
-                die $e;
-            }
-            catch (Template::SX::Exception::Prototype $e) {
-                $e->throw_at($location),
-            }
-            catch (Any $e) {
-                E_CAPTURED->throw(
-                    message     => "error during application: $e",
-                    location    => $location,
-                    captured    => $e,
-                );
             }
 
             return $result;
@@ -416,7 +403,7 @@ class Template::SX::Inflator {
         return subname GETTER => sub {
             my $env = shift;
 
-            if ($found_env ||= $exists->($env)) {
+            if (my $found_env = $exists->($env)) {
                 return $found_env->{vars}{ $name };
             }
             elsif ($lib_function) {
