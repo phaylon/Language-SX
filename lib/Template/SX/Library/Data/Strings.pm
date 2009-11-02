@@ -23,6 +23,19 @@ class Template::SX::Library::Data::Strings extends Template::SX::Library {
     );
 
     CLASS->add_functions(
+        cmp => CLASS->wrap_function('cmp', { min => 2, max => 2 }, sub {
+            return scalar( $_[0] cmp $_[1] );
+        }),
+    );
+
+    CLASS->add_functions(
+        split => CLASS->wrap_function('split', { min => 2, max => 2, types => [qw( regex )] }, sub {
+            my ($rx, $str) = @_;
+            return [ split($rx, "$str") ];
+        }),
+    );
+
+    CLASS->add_functions(
         'eq?' => CLASS->_build_equality_operator(   eq => 'eq?'),
         'ne?' => CLASS->_build_nonequality_operator(ne => 'ne?'),
         'lt?' => CLASS->_build_sequence_operator(   lt => 'lt?'),

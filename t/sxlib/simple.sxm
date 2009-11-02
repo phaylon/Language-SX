@@ -1,0 +1,19 @@
+(module
+  (arguments case)
+  (requires  Core)
+  (exports   (group: double) format))
+
+(define (format string)
+  (case string))
+
+(define (repeat n string)
+  (join " "
+        (gather
+          (lambda (add-part)
+            (let ((times 0))
+              (while (<- (set! times (++ times)))
+                     (-> (<= _ n))
+                     (-> (add-part string))))))))
+
+(define (double string)
+  (format (repeat 2 string)))

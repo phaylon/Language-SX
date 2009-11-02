@@ -106,6 +106,10 @@ class Template::SX::Library::Operators extends Template::SX::Library {
         'and-def'   => CLASS->_build_operator_renderer(name => 'and-def', gen => 'and', arg_count => 2, test_definition => 1),
         'or-def'    => CLASS->_build_operator_renderer(name => 'or-def',  gen => 'or',  arg_count => 2, test_definition => 1),
         'not-def'   => CLASS->_build_operator_renderer(name => 'not-def', gen => 'not', arg_count => 1, test_definition => 1),
+        'begin'     => sub {
+            my ($self, $inf, $cell, @seq) = @_;
+            return $inf->render_sequence(\@seq);
+        },
     );
 
     method _check_min_args (Str $who, Int $expects, Object $cell, ArrayRef[Object] $args) {

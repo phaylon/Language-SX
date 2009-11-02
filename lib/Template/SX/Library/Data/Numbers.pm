@@ -4,7 +4,7 @@ class Template::SX::Library::Data::Numbers extends Template::SX::Library {
     use MooseX::ClassAttribute;
     use CLASS;
 
-    use List::Util              qw( min max );
+    use List::AllUtils          qw( min max );
     use Template::SX::Types     qw( :all );
     use Template::SX::Constants qw( :all );
 

@@ -67,6 +67,15 @@ my @should_work = (
 
     ['(list-splice `(1 2 3 4 5) 1)',    [2, 3, 4, 5],       'list-splice with implicit length'],
     ['(list-splice `(1 2 3 4) 1 2)',    [2, 3],             'list-splice with explicit length'],
+
+    [   '(gather (lambda (take) (for-each `(1 2 3) (-> (take _)))))',
+        [1, 2, 3],
+        'simple for-each',
+    ],
+    [   '(for-each `(1 2 3) (-> _))',
+        undef,
+        'for-each return value check',
+    ],
 );
 
 push @should_work, [
@@ -113,12 +122,24 @@ push @should_work, [
           ls1 
           ls2)
     },
-    [   [3, 4, 5, 6], 
-        [3, 4, 5], 
+    [   [23, 24, 25], 
+        [23, 24, 25], 
         [2, 23, 24, 25], 
         [2, 23, 24, 25, 6],
     ],
     'setting a list-splice',
+];
+
+push @should_work, [
+    q{
+        (define ls `(1 2 3))
+        (list
+          (apply! (list-splice ls 1 2)
+            (-> (map _ ++)))
+          ls)
+    },
+    [[3, 4], [1, 3, 4]],
+    'setting a list-splice via application',
 ];
 
 my @should_fail = (
@@ -254,6 +275,12 @@ my @should_fail = (
     ['(set! (list-splice `() 3 4 5) `())',  [E_PARAMETER,   qr/too many/, 1, 7],    'setting a list-splice with more than three arguments'],
     ['(set! (list-splice 3 4 5) `())',      [E_TYPE,        qr/list/, 1, 7],        'setting a list-splice on a non-list'],
     ['(set! (list-splice `() 3) 7)',        [E_TYPE,        qr/list/, 1, 1],        'setting a non-list as a list-splice'],
+
+    ['(for-each)',                          [E_PARAMETER,   qr/not enough/],        'for-each without arguments'],
+    ['(for-each `(1 2 3))',                 [E_PARAMETER,   qr/not enough/],        'for-each with single argument'],
+    ['(for-each `(1 2) (-> _) 3)',          [E_PARAMETER,   qr/too many/],          'for-each with more than two arguments'],
+    ['(for-each 3 (-> _))',                 [E_TYPE,        qr/list/],              'for-each with non-list argument'],
+    ['(for-each `(1 2 3) 3)',               [E_TYPE,        qr/applicant/],         'for-each with non-applicant arguments'],
 );
 
 with_libs(sub {

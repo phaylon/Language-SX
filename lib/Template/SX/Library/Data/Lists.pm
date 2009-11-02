@@ -4,7 +4,7 @@ class Template::SX::Library::Data::Lists extends Template::SX::Library {
     use MooseX::ClassAttribute;
     use CLASS;
 
-    use List::Util              qw( first reduce );
+    use List::AllUtils          qw( first reduce any all );
     use List::MoreUtils         qw( any all );
     use Template::SX::Types     qw( :all );
     use Template::SX::Constants qw( :all );
@@ -112,6 +112,17 @@ class Template::SX::Library::Data::Lists extends Template::SX::Library {
 
                 return \@old;
             };
+        }),
+    );
+
+    CLASS->add_functions(
+        'for-each' => CLASS->wrap_function('for-each', { min => 2, max => 2, types => [qw( list applicant )] }, sub {
+            my ($ls, $apply) = @_;
+
+            apply_scalar apply => $apply, arguments => [$ls->[ $_ ]]
+                for 0 .. $#$ls;
+
+            return undef;
         }),
     );
 

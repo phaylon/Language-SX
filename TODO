@@ -1,45 +1,13 @@
 
 BASIC:
 
-    class application
     (cond ((if1 then1)
            (if2 => then2withresult)))
+
     (object? foo)
-    (split rx/\s+/ str)
-    (hash->pairs h)
-    (pairs->hash)
-    (pairs->list)
-    (list->pairs)
-    (pairs->hash ps)
-    (begin ...)
-    (matches? rx/rx/ str)
-    (match rx/rx/ str)
-    (match-all rx/rx/ str)
-    (replace rx/rx/ fun str)
-    (regex rx1 rx2 ...)
+
     (error "invalid something")
     (catch (λ () ...) (λ (e) ...))
-    (thunk ...)
-    (for `(1 2 3) say)
-    (quotemeta str1 str2 ...)
-    (curry fun 1 2 ...)
-    (rcurry fun 1 2 ...)
-    (# ...)
-    (while defined? 
-           (thunk (rs :next))
-           (-> (say "name: " (_ :name))))
-    
-    ; should work
-    ; die if reserved var name passed in
-    (let ((let 23))
-      (+ let let))
-
-    (module 
-      (arguments:   foo bar baz . optional arg)
-      (exports:     x1 x2 (group: x3 x4))
-      (libraries:   Core))
-    (import "foo/bar.sx" { foo: 23 } :all)
-    (include "foo/bar.sx" { bar: 23 })
 
     (import-types
       (Moose        (Str as: MooseStr) ArrayRef HashRef)
@@ -51,7 +19,36 @@ BASIC:
     (define-subtype Foo as: Int where odd?)
     (assert Type value) ; blows up if fail
 
-    (lambda ([Str n] [Int m]) (list n m))
+    (lambda ([Str n] [Int m]) (list n m)) ; arg type check
+
+    (let (([Int x] 23)) x)  ; ret type check
+
+    ((class-invocant "Foo") 'new x: 3 y: 4)
+    (call-in-list-context (class-invocant "Foo") :some-list 2 3 4)
+    (call-in-list-context applicant arg1 arg2 ...)
+
+    (stepper->iterator (-> (if (> _ 10) #f (++ _))) 0)
+    (range->iterator 0 1000)
+    (keys->iterator comp)
+    (values->iterator comp)
+
+    (iterate (range-iterator 1 10)
+      (-> (* _ 2))
+      (it-filter even?)
+      (it-replace
+        (lambda (value)
+          (map (range 0 3) (-> _ value)))))
+
+    (range 0 10)
+
+
+
+
+
+    (Dict foo: (ArrayRef Int)
+          bar: (Tuple Str Str HashRef))
+
+
 
 
 
@@ -62,11 +59,36 @@ OBJECTS:
 
 
 
+HTML PROCESSOR:
+
+    maybe: (uri-for-action /foo/bar: captures params 1 2 3)
+
+    (define (wrapper page)
+      `(html
+        (head
+          (title (at page :title))
+          (link { rel: "stylesheet" href: ,(uri-for-action "/static" "base.css") }))
+        (body
+          (table { id: "content" }
+            (tr (td { id: "header" }
+                  (h1 ,(at page :ttile))))
+            (tr (td { id: "body" }
+                  ,(at page :content)))
+            (tr (td { id: (raw! "footer") }
+                  (raw! greeting)
+                  "You can email me at "
+                  ,(hidden-email (at page :contact))))))))
+
+        
+
+
+
+
+
 
 EXTENDED
 
 
-    (# ...)
     (with-input-from *in* ...)
     (zip fun ls1 ls2 ls3 ...)
     (unzip ls fun)
@@ -83,13 +105,17 @@ EXTENDED
     (say ...)
     (print ...)
     (read ...)
-    (if-value foo
+    (cmp-value foo
       (== (1 "one")
           (2 "two")
           (3 "hree"))
       (<  (10 "not ten")
           (20 "not twenty"))
       (else "twenty or more"))
+    (if-value foo
+      (Int (* 2 foo))
+      (Str (string foo foo))
+      (Any (error 'gnarf)))
     (let-named (foo x)
       (if (== x 0)
         (say "zero")

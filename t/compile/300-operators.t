@@ -29,6 +29,10 @@ my @should_work = (
     ['(not-def #f)',                1,          'not-def with single undefined'],
     ['(not-def #f #f #f)',          1,          'not-def with multiple undefined'],
     ['(not-def #f 0 fnord)',        undef,      'not-def with false but defined followed by failing'],
+
+    ['(begin)',                     undef,      'begin operator without arguments'],
+    ['(begin 23)',                  23,         'begin operator with single argument'],
+    ['(begin 1 0 2 #f 3)',          3,          'begin operator with multiple arguments'],
 );
 
 my @should_fail = (

@@ -33,6 +33,39 @@ class Template::SX::Library::Data::Functions extends Template::SX::Library {
         return apply_scalar apply => $op, arguments => \@args;
     });
 
+    CLASS->add_functions(
+        while => CLASS->wrap_function('while', { min => 3, max => 3, types => [qw( lambda lambda applicant )] }, sub {
+            my ($get, $test, $apply) = @_;
+
+            my $value;
+            while ($test->(my $next = $get->())) {
+                apply_scalar apply => $apply, arguments => [$next];
+                $value = $next;
+            }
+
+            return $value;
+        }),
+    );
+
+    CLASS->add_functions(
+        curry => CLASS->wrap_function('curry', { min => 2, types => [qw( applicant )] }, sub {
+            my ($apply, @args) = @_;
+            return sub {
+                return apply_scalar
+                    apply       => $apply,
+                    arguments   => [@args, @_];
+            };
+        }),
+        rcurry => CLASS->wrap_function('rcurry', { min => 2, types => [qw( applicant )] }, sub {
+            my ($apply, @args) = @_;
+            return sub {
+                return apply_scalar
+                    apply       => $apply,
+                    arguments   => [@_, @args];
+            };
+        }),
+    );
+
     CLASS->add_functions('lambda?', sub {
 
         E_PROTOTYPE->throw(
@@ -43,20 +76,20 @@ class Template::SX::Library::Data::Functions extends Template::SX::Library {
         return scalar( grep { ref $_ ne 'CODE' } @_ ) ? undef : 1;
     });
 
-    CLASS->add_functions('<-', sub {
+    CLASS->add_functions('cascade', sub {
 
         return undef unless @_;
 
-        my $value = pop @_;
+        my $value = shift @_;
 
-        for my $idx (reverse(0 .. $#_)) {
+        for my $idx (0 .. $#_) {
             my $apply = $_[ $idx ];
 
             return undef unless defined $value;
 
             E_PROTOTYPE->throw(
                 class       => E_TYPE,
-                attributes  => { message => sprintf '<- argument %s is not a valid applicant', $idx + 1 },
+                attributes  => { message => sprintf 'cascade argument %s is not a valid applicant', $idx + 1 },
             ) unless blessed($apply) or ref $apply eq 'CODE';
 
             $value = apply_scalar apply => $apply, arguments => [$value];

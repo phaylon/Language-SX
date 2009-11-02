@@ -86,8 +86,18 @@ my @should_work = (
               (set! (hash-splice h `(x z)) { a: 7 b: 8 })
               h)
         },
-        [{ x => 3, z => 5 }, { y => 4, a => 7, b => 8 }],
+        [{ a => 7, b => 8 }, { y => 4, a => 7, b => 8 }],
         'setting a hash-splice',
+    ],
+    [   q{
+            (define h { x: 3 y: 4 z: 5 })
+            (list
+              (apply! (hash-splice h `(x z))
+                (-> { e: (at _ :x) f: (at _ :z) }))
+              h)
+        },
+        [{ e => 3, f => 5 }, { e => 3, y => 4, f => 5 }],
+        'setting a hash-splice via application',
     ],
 );
 

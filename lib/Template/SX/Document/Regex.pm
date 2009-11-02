@@ -22,8 +22,8 @@ class Template::SX::Document::Regex extends Template::SX::Document::Value {
     method new_from_stream (ClassName $class: Object $doc, Object $stream, Str $value, Location $loc) {
 
         my $deparse = qr[
-            \A rx . (.+) [\)\}/] ([a-z-]*) \Z
-        ]xi;
+            \A rx . (.*) [\)\}/] ([a-z-]*) \Z
+        ]xis;
 
         $value =~ $deparse
             or E_SYNTAX->throw(

@@ -33,6 +33,8 @@ enum QuoteState, qw( quasi full );
 enum Scope, SCOPE_FUNCTIONAL, SCOPE_STRUCTURAL;
 
 class_type $_ for map "Template::SX::$_", qw(
+    Reader
+    Reader::Stream
     Document
     Document::Bareword
     Document::Cell::Application
@@ -70,15 +72,21 @@ my $CoerceLib = sub {
     return $str 
         if ref $str;
 
+    my @errors;
+
     for my $try ($str, "Template::SX::Library::$str") {
+
         try {
             Class::MOP::load_class($try);
             $obj = $try->new;
         }
+        catch (Any $e) { 
+            push @errors, $e;
+        }
     }
 
     # FIXME throw exception
-    die "Unable to load library: $str\n"
+    die sprintf "Unable to load library %s:\n%s\n", $str, join("\n", @errors)
         unless $obj;
 
     return $obj;

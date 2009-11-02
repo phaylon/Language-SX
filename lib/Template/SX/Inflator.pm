@@ -3,20 +3,31 @@ use MooseX::Declare;
 class Template::SX::Inflator {
     with 'MooseX::Traits';
 
-    use Sub::Name               qw( subname );
+    use Template::SX;
+    use Carp                        qw( croak );
+    use Sub::Name                   qw( subname );
     use TryCatch;
-    use List::AllUtils          qw( uniq );
-    use Scalar::Util            qw( blessed );
-    use Template::SX::Types     qw( :all );
-    use Template::SX::Constants qw( :all );
-    use Template::SX::Util      qw( :all );
-    use MooseX::Types::Moose    qw( ArrayRef Str Object Undef HashRef );
-    use Data::Dump              qw( pp );
+    use List::AllUtils              qw( uniq );
+    use Scalar::Util                qw( blessed );
+    use Template::SX::Types         qw( :all );
+    use Template::SX::Constants     qw( :all );
+    use Template::SX::Util          qw( :all );
+    use MooseX::Types::Moose        qw( ArrayRef Str Object Undef HashRef );
+    use MooseX::Types::Path::Class  qw( Dir File );
+    use Data::Dump                  qw( pp );
+    use Path::Class                 qw( dir file );
+
+    BEGIN {
+        if ($Template::SX::TRACK_INSTANCES) {
+            require MooseX::InstanceTracking;
+            MooseX::InstanceTracking->import;
+        }
+    }
 
     my $PluginNamespace = __PACKAGE__ . '::Trait';
 
     Class::MOP::load_class($_)
-        for E_UNBOUND, E_CAPTURED, E_APPLY;
+        for E_UNBOUND, E_CAPTURED, E_APPLY, E_PROTOTYPE, E_INSERT;
 
     has libraries => (
         traits      => [qw( Array )],
@@ -28,6 +39,7 @@ class Template::SX::Inflator {
             all_libraries   => 'elements',
             find_library    => 'first',
             map_libraries   => 'map',
+            add_library     => 'unshift',
         },
         init_arg    => 'libraries',
     );
@@ -42,6 +54,78 @@ class Template::SX::Inflator {
     has '+_trait_namespace' => (
         default     => $PluginNamespace,
     );
+
+    has _lexical_map => (
+        is          => 'ro',
+        isa         => HashRef,
+        required    => 1,
+        default     => sub { {} },
+    );
+
+    has _document_cache => (
+        is          => 'ro',
+        isa         => HashRef,
+        required    => 1,
+    );
+
+    method create_value_scope (@args) {
+        require Template::SX::Inflator::ValueScope;
+        return Template::SX::Inflator::ValueScope->new(@args);
+    }
+
+    method build_path_finder {
+
+        return sub {
+            my $env = shift;
+
+            while ($env) {
+
+                return $env->{path}
+                    if $env->{path};
+
+                $env = $env->{parent};
+            }
+
+            return undef;
+        };
+    }
+
+    method build_document_loader () {
+
+        my $cache = $self->_document_cache;
+        my @libs  = map { blessed($_) } $self->all_libraries;
+        my $l_key = join '|', @libs;
+
+        return sub {
+            my ($file) = @_;
+
+            E_PROTOTYPE->throw(
+                class       => E_INSERT,
+                attributes  => { message => "unable to load non-existing file $file", path => $file },
+            ) unless -e $file;
+
+            return $cache->{ $file }{ $l_key }
+                if exists $cache->{ $file }{ $l_key };
+
+            return $cache->{ $file }{ $l_key } ||= do {
+
+                my $sx = Template::SX->new(default_libraries => [@libs]);
+                $sx->read(file => $file);
+            };
+        };
+    }
+
+    method known_lexical (Str $name) {
+        return $self->_lexical_map->{ $name };
+    }
+
+    method with_lexicals (Str @lexicals) {
+
+        return $self->meta->clone_object($self, _lexical_map => {
+            %{ $self->_lexical_map },
+            map { ($_, 1) } @lexicals
+        });
+    }
 
     method new_with_resolved_traits (ClassName $class: @args) {
         my $self = $class->new_with_traits(@args);
@@ -149,7 +233,7 @@ class Template::SX::Inflator {
     method serialize {
 
         return sprintf(
-            '(do { require %s; %s->new(traits => %s, libraries => %s) })',
+            '(do { require %s; %s->new(traits => %s, libraries => %s, _document_cache => %s) })',
             ( __PACKAGE__ ) x 2,
            pp([ 
 #                map { s/${PluginNamespace}:://; $_ }
@@ -159,11 +243,41 @@ class Template::SX::Inflator {
             pp([
                 map { ref } $self->all_libraries
             ]),
+            '$DOC_CACHE || {}',
         );
     }
 
+    method resolve_module_meta (ArrayRef[Object] $nodes) {
+
+        if (@$nodes and $nodes->[0]->isa('Template::SX::Document::Cell::Application')) {
+            my ($cell, @other_nodes) = @$nodes;
+
+            if ($cell->node_count and $cell->get_node(0)->isa('Template::SX::Document::Bareword')) {
+                my ($word, @rest) = $cell->all_nodes;
+
+                if ($word->value eq 'module') {
+                    require Template::SX::Inflator::ModuleMeta;
+
+                    return (
+                        \@other_nodes,
+                        Template::SX::Inflator::ModuleMeta->new_from_tree(
+                            arguments => [@rest],
+                        ),
+                    );
+                }
+            }
+        }
+
+        return($nodes, undef);
+    }
+
     method compile_base (ArrayRef[Object] $nodes, Scope $start_scope) {
-        
+
+        ($nodes, my $meta) = $self->resolve_module_meta($nodes);
+
+        my @arg_lex = $meta ? $meta->lexicals       : ();
+        $meta       = $meta ? $meta->compile($self) : '';
+
         my $compiled = sprintf(
             '(do { %s })',
             join(';',
@@ -176,23 +290,59 @@ class Template::SX::Inflator {
 
                 # the nodes
                 sprintf(
-                    '(do { my $root = %s; Sub::Name::subname q(ENTER_SX), sub { $root->({ vars => (@_ == 1 ? $_[0] : +{ @_ }) }) } })',
+                    '(do { %s; my $root = %s; %s })',
+                    $meta,
                     $self->render_call(
                         method  => 'make_sequence',
                         args    => {
                             elements    => sprintf(
                                 '[%s]',
                                 join(', ',
-                                    $self->compile_sequence($nodes, $start_scope),
+                                    $self->with_lexicals(@arg_lex)->compile_sequence($nodes, $start_scope),
                                 ),
                             ),
                         },
                     ),
+                    '$inf->make_root(sequence => $root)'
+
+#                    '(do { my $root = %s; Sub::Name::subname q(ENTER_SX), sub { $root->({ vars => (@_ == 1 ? $_[0] : +{ @_ }) }) } })',
                 ),
             ),
         );
         
         return $compiled;
+    }
+
+    method make_root (CodeRef :$sequence) {
+
+        my $arg_spec = $Template::SX::MODULE_META->{arguments};
+        my %required = $arg_spec ? %{ $arg_spec->{required} || {} } : ();
+        my %optional = $arg_spec ? %{ $arg_spec->{optional} || {} } : ();
+#        pp $arg_spec;
+
+        my $throw = sub { 
+            my ($exc, $msg) = @_;
+            E_PROTOTYPE->throw(class => $exc, attributes => { message => $msg });
+        };
+
+        return subname ENTER_SX => sub {
+            my %args = @_;
+            my $vars = $args{vars} || {};
+
+            if ($arg_spec) {
+
+                exists($vars->{ $_ }) or $throw->(E_PARAMETER, "missing module argument '$_'")
+                    for keys %required;
+
+                exists($optional{ $_ }) or exists($required{ $_ }) or $throw->(E_PARAMETER, "unknown module argument '$_'")
+                    for keys %$vars;
+
+                exists($vars->{ $_ }) or $vars->{ $_ } = undef
+                    for keys %optional;
+            }
+
+            return scalar $sequence->(\%args);
+        };
     }
 
     method compile_sequence (ArrayRef[Object] $nodes, Scope $scope?) {
@@ -370,10 +520,13 @@ class Template::SX::Inflator {
 
             local $Template::SX::SHADOW_CALL = $shadow_call;
 
+#            warn "TRY";
             try {
                 $result = apply_scalar 
                     apply       => $apply->($env), 
                     arguments   => [map { $_->($env) } @$arguments];
+
+#                warn "RES";
             }
             catch (Template::SX::Exception::Prototype $e) {
                 $e->throw_at($location);
@@ -393,6 +546,7 @@ class Template::SX::Inflator {
         my $exists;
         $exists = sub {
             my $env = shift;
+            
             return $env  if exists $env->{vars}{ $name };
             return undef unless exists $env->{parent};
             return $exists->($env->{parent});
@@ -402,6 +556,7 @@ class Template::SX::Inflator {
 
         return subname GETTER => sub {
             my $env = shift;
+#            pp "GET $name ", $env;
 
             if (my $found_env = $exists->($env)) {
                 return $found_env->{vars}{ $name };

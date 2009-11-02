@@ -142,6 +142,7 @@ class Template::SX::Library {
         any         => sub { 1 },
         applicant   => sub { blessed($_[0]) or ref($_[0]) eq 'CODE' },
         compound    => sub { ref($_[0]) eq 'ARRAY' or ref($_[0]) eq 'HASH' },
+        string      => sub { defined($_[0]) and not ref($_[0]) },
     );
 
     method wrap_function (ClassName $class: Str $name, HashRef $args, CodeRef $body) {

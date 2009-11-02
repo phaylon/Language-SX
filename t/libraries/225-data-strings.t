@@ -52,6 +52,12 @@ my @should_work = (
     ['(upper-first "foO")',                 'FoO',              'upper-first'],
 
     ['(lower-first "FOo")',                 'fOo',              'lower-first'],
+
+    ['(cmp :a :b)',                         -1,                 'comparing two strings in order'],
+    ['(cmp :b :b)',                         0,                  'comparing two equal strings'],
+    ['(cmp :b :a)',                         1,                  'comparing two strings in reverse order'],
+
+    ['(split rx/_/ "a_b_c")',               [qw( a b c )],      'splitting a string'],
 );
 
 my @should_fail = (
@@ -75,6 +81,15 @@ my @should_fail = (
 
     ['(lower-first)',           [E_PARAMETER,   qr/not enough/],    'lower-first without arguments'],
     ['(lower-first 3 4)',       [E_PARAMETER,   qr/too many/],      'lower-first with more than one argument'],
+
+    ['(cmp)',                   [E_PARAMETER,   qr/not enough/],    'cmp without arguments'],
+    ['(cmp :a)',                [E_PARAMETER,   qr/not enough/],    'cmp with single argument'],
+    ['(cmp :a :b :c)',          [E_PARAMETER,   qr/too many/],      'cmp with more than two arguments'],
+
+    ['(split)',                 [E_PARAMETER,   qr/not enough/],    'split without arguments'],
+    ['(split rx/-/)',           [E_PARAMETER,   qr/not enough/],    'split with single argument'],
+    ['(split rx/-/ "" 3)',      [E_PARAMETER,   qr/too many/],      'split with more than two arguments'],
+    ['(split 3 4)',             [E_TYPE,        qr/regex/],         'split with non-regex argument'],
 );
 
 with_libs(sub {

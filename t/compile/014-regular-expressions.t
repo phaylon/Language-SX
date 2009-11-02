@@ -24,6 +24,20 @@ do {
     ok ' a b } c ' =~ $rx, 'removed flag worked';
 };
 
+do {
+    my $rx = sx_run(q(
+        rx(
+            \A
+            $"
+            [a-z]+
+            "
+            \Z
+        )i
+    ));
+    is ref($rx), 'Regexp', 'multiline regular expression was parsed';
+    ok '$"Foo"' =~ $rx, 'multiline regular expression matches';
+};
+
 throws_ok { sx_load 'rx/foo/y' } E_SYNTAX, 'invalid modifier raises syntax error';
 like $@, qr/modifier 'y'/, 'correct error message';
 is $@->location->{line}, 1, 'correct line number';

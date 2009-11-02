@@ -5,11 +5,22 @@ class Template::SX::Document
 
     with 'MooseX::Traits';
 
-    use Template::SX::Constants qw( :all );
-    use Template::SX::Types     qw( :all );
-    use MooseX::Types::Moose    qw( ArrayRef HashRef Object Bool Str CodeRef );
+    use Carp                        qw( croak );
+    use Template::SX::Constants     qw( :all );
+    use Template::SX::Types         qw( :all );
+    use MooseX::Types::Moose        qw( ArrayRef HashRef Object Bool Str CodeRef );
+    use MooseX::Types::Path::Class  qw( Dir File );
+    use Path::Class                 qw( dir file );
 
-    Class::MOP::load_class(E_INTERNAL);
+    BEGIN {
+        if ($Template::SX::TRACK_INSTANCES) {
+            require MooseX::InstanceTracking;
+            MooseX::InstanceTracking->import;
+        }
+    }
+
+    Class::MOP::load_class($_)
+        for E_INTERNAL, E_PROTOTYPE;
 
     has '+_trait_namespace' => (
         default     => 'Template::SX::Document::Trait',
@@ -62,12 +73,42 @@ class Template::SX::Document
         default     => sub { {} },
     );
 
+    has _module_meta => (
+        is          => 'ro',
+        isa         => HashRef,
+        required    => 1,
+        default     => sub { {} },
+    );
+
+    has last_calculated_exports => (
+        isa         => HashRef,
+        reader      => 'last_calculated_exports',
+        writer      => '_set_last_calculated_exports',
+        default     => sub { {} },
+    );
+
+    has _document_cache => (
+        is          => 'ro',
+        isa         => HashRef,
+        required    => 1,
+        default     => sub { {} },
+    );
+
+    has default_include_path => (
+        is          => 'ro',
+        isa         => Dir,
+        required    => 1,
+        default     => sub { dir '.' },
+        writer      => '_set_default_include_path',
+    );
+
     method compile () {
         require Template::SX::Inflator;
 
         my $inflator = Template::SX::Inflator->new_with_resolved_traits(
             libraries       => [$self->all_libraries],
             _object_cache   => $self->_object_cache,
+            _document_cache => $self->_document_cache,
         );
 
         my $compiled = $inflator->compile_base([$self->all_nodes], $self->start_scope);
@@ -87,6 +128,8 @@ class Template::SX::Document
 
     method load () {
 
+        local $Template::SX::MODULE_META = $self->_module_meta;
+        my $DOC_CACHE = $self->_document_cache;
         my $code = eval sprintf 'package Template::SX::VOID; %s', $self->compiled_body;
 
         if ($@) {
@@ -103,8 +146,59 @@ class Template::SX::Document
         return $code;
     }
 
-    method run (HashRef :$vars = {}, Bool :$persist) {
-        return $self->loaded_callback->($persist ? $vars : (%$vars));
+    method run (HashRef :$vars = {}, Bool :$persist, Dir :$include_path) {
+
+        my $inner_vars  = $persist ? $vars : { %$vars };
+        $include_path ||= $self->default_include_path;
+
+        my $res = $self->loaded_callback->(
+            vars => $inner_vars,
+            path => $include_path,
+        );
+
+        if (my $exports = $self->_module_meta->{exports}) {
+
+            $self->_set_last_calculated_exports({
+                map { ($_ => $inner_vars->{ $_ }) } @{ $exports->{all} }
+            });
+        }
+
+        return $res;
+
+#        return $self->loaded_callback->($persist ? $vars : (%$vars));
+    }
+
+    method _export_info {
+
+        $self->loaded_callback;
+        return $self->_module_meta->{exports} || {};
+    }
+
+    method exported_groups () {
+
+        return keys %{ $self->_export_info };
+    }
+
+    method exports_in_group (Str $group) {
+
+        my $exports = $self->_export_info->{ $group }
+            or E_PROTOTYPE->throw(
+                class       => E_SYNTAX,
+                attributes  => { message => "unknown export group '$group'" },
+            );
+
+        return @$exports;
+    }
+
+    method last_exported (Str $name) {
+
+        my $export = $self->last_calculated_exports->{ $name }
+            or E_PROTOTYPE->throw(
+                class       => E_SYNTAX,
+                attributes  => { message => "no value for '$name' was exported" },
+            );
+
+        return $export;
     }
 
     method new_from_stream (ClassName $class: Template::SX::Reader::Stream $stream, @for_new) {
@@ -117,7 +211,11 @@ class Template::SX::Document
     method _populate_from_stream (Object $stream) {
 
         while (my $token = $stream->next_token) {
-            $self->add_node($self->new_node_from_stream($stream, $token));
+
+            my $node = $self->new_node_from_stream($stream, $token);
+
+            $self->add_node($node)
+                if defined $node;
         }
     }
 

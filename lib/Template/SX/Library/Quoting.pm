@@ -80,6 +80,8 @@ class Template::SX::Library::Quoting extends Template::SX::Library {
 
     method _quote (QuoteState $state, Object $inf, Object $cell, @args) {
 
+#        warn "QUOTING " . pp([ map "$_", $cell->all_nodes ]);
+
         E_SYNTAX->throw(message => 'only single item can be quoted at a time', location => $cell->location)
             unless @args == 1;
 

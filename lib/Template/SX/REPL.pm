@@ -63,6 +63,7 @@ class Template::SX::REPL {
         my @globals = ($self->_all_functions, $self->_all_syntaxes);
         my @buffer;
         my $indent;
+        my $last;
 
         $term->Attribs->{default_mode}  = 'multiline';
         $term->Attribs->{autohistory}   = 1;
@@ -84,13 +85,16 @@ class Template::SX::REPL {
         while (defined( my $line = $term->readline('+> ') )) {
 
             try {
+                $vars->{ '$' } = $last;
+
                 my $code   = join("\n", @buffer, $line);
-                my $result = pp $self->_run_expression(
+                my $result = pp($last = $self->_run_expression(
                     string      => $code, 
                     source_name => sprintf('(sx-repl:%d)', $count++),
                     vars        => $vars,
                     persist     => 1,
-                );
+                ));
+
                 chomp $result;
                 printf "result: %s\n\n", $result;
                 push @committed, $code;

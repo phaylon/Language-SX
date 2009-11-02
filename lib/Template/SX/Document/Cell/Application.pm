@@ -15,6 +15,9 @@ class Template::SX::Document::Cell::Application
         return undef 
             unless $node->isa('Template::SX::Document::Bareword');
 
+        return undef
+            if $inf->known_lexical($node->value);
+
         if (my $syntax = $inf->find_library_syntax($node->value)) {
             return $inf->$syntax($self, @$args);
         }

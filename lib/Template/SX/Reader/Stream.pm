@@ -119,7 +119,6 @@ class Template::SX::Reader::Stream {
 
         my $rx = qr/
             (?:
-                \A
                 \s*
                 (?:
                     ;
@@ -331,7 +330,7 @@ class Template::SX::Reader::Stream {
                   |
                 (?: \{ .*? (?<!\\) \} $rx_mod )
             )
-        ]x;
+        ]xs;
 
         if (defined( my $regex = $self->try_regex(qr/$rx/, bare => 1) )) {
             return [regex => $regex];

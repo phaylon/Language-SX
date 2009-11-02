@@ -26,6 +26,7 @@ sub apply_scalar {
     my $result;
     my $shadow_call = $Template::SX::SHADOW_CALL || sub { my $op = shift; goto $op };
 
+#    warn "TRY";
     try {
 
         if (my $class = blessed $op) {
@@ -69,6 +70,8 @@ sub apply_scalar {
                 attributes  => { message => sprintf('invalid applicant type (%s): %s', ref($op), pp($op)) },
             );
         }
+
+#        warn "RES";
     } 
     catch (Template::SX::Exception::Prototype $e) {
         die $e;

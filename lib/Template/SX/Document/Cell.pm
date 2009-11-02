@@ -50,6 +50,13 @@ class Template::SX::Document::Cell
 
                 if ($self->_closer_for($value) eq $token->[1]) {
 
+                    if (my $head = $self->head_node) {
+
+                        return undef
+                            if $head->isa('Template::SX::Document::Bareword')
+                                and $head->value eq '#';
+                    }
+
                     return $self;
                 }
                 else {
@@ -67,7 +74,10 @@ class Template::SX::Document::Cell
                 }
             }
 
-            $self->add_node(my $node = $doc->new_node_from_stream($stream, $token));
+            my $node = $doc->new_node_from_stream($stream, $token);
+
+            $self->add_node($node) 
+                if defined $node;
         }
 
         E_END_OF_STREAM->throw(

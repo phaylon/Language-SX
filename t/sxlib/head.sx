@@ -1,0 +1,8 @@
+(module (arguments title))
+
+`(head
+  (title ,title)
+  (link { 
+    rel:  "stylesheet" 
+    href: "base.css" 
+    type: "text/css" }))

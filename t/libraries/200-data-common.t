@@ -40,45 +40,46 @@ my @try = (
         'non existent deep path with object method',
     ],
 
-    ['(empty?)',            1,      'empty? without arguments'],
-    ['(empty? `())',        1,      'empty? with empty list'],
-    ['(empty? {})',         1,      'empty? with empty hash'],
-    ['(empty? "")',         1,      'empty? with empty string'],
-    ['(empty? {} "")',      1,      'empty? with multiple empty arguments'],
+    ['(empty?)',                                1,                  'empty? without arguments'],
+    ['(empty? `())',                            1,                  'empty? with empty list'],
+    ['(empty? {})',                             1,                  'empty? with empty hash'],
+    ['(empty? "")',                             1,                  'empty? with empty string'],
+    ['(empty? {} "")',                          1,                  'empty? with multiple empty arguments'],
 
-    ['(empty? `(4))',       undef,  'empty? with non-empty list'],
-    ['(empty? { x: 23 })',  undef,  'empty? with non-empty hash'],
-    ['(empty? "foo")',      undef,  'empty? with non-empty string'],
-    ['(empty? {} "x" `())', undef,  'empty? with not all empty arguments'],
+    ['(empty? `(4))',                           undef,              'empty? with non-empty list'],
+    ['(empty? { x: 23 })',                      undef,              'empty? with non-empty hash'],
+    ['(empty? "foo")',                          undef,              'empty? with non-empty string'],
+    ['(empty? {} "x" `())',                     undef,              'empty? with not all empty arguments'],
 
-    [['(exists? foo :bar)', $vars],     1,      'exists? on hash'],
-    [['(exists? foo :baz)', $vars],     undef,  'exists? on hash without entry'],
-    [['(exists? foo :bar 1)', $vars],   1,      'exists? deep on hash and list'],
-    [['(exists? foo :bar 7)', $vars],   undef,  'exists? deep on hash and list without entry'],
-    [['(exists? foo :obj :x)', $vars],  1,      'exists? deep on object'],
-    [['(exists? foo :obj :y)', $vars],  undef,  'exists? deep on object without method'],
+    [['(exists? foo :bar)', $vars],             1,                  'exists? on hash'],
+    [['(exists? foo :baz)', $vars],             undef,              'exists? on hash without entry'],
+    [['(exists? foo :bar 1)', $vars],           1,                  'exists? deep on hash and list'],
+    [['(exists? foo :bar 7)', $vars],           undef,              'exists? deep on hash and list without entry'],
+    [['(exists? foo :obj :x)', $vars],          1,                  'exists? deep on object'],
+    [['(exists? foo :obj :y)', $vars],          undef,              'exists? deep on object without method'],
 
-#   TODO works, but needs sorting to be tested
-#    ['(keys { x: 2 y: 3 })',        [qw( x y )],        'keys on hash'],
+    ['(sort (keys { x: 2 y: 3 }) cmp)',         [qw( x y )],        'keys on hash'],
     ['(keys `(2 3 4))',                         [0, 1, 2],          'keys on list'],
+
     ['(sort (values { x: 2 y: 3 }) <=>)',       [2, 3],             'values on hash'],
+
     ['(values `(2 3 4))',                       [2, 3, 4],          'values on list'],
     ['(values { x: 2 y: 3 } `(y))',             [3],                'values slice on hash'],
     ['(values `(2 3 4) `(1 2))',                [3, 4],             'values slice on list'],
 
-    ['(length `(1 2 3 4))',     4,      'list length'],
-    ['(length { x: 1 y: 2 })',  2,      'hash length'],
-    ['(length "foobar")',       6,      'string length'],
+    ['(length `(1 2 3 4))',                     4,                  'list length'],
+    ['(length { x: 1 y: 2 })',                  2,                  'hash length'],
+    ['(length "foobar")',                       6,                  'string length'],
 
-    ['(defined?)',              undef,  'defined? without arguments'],
-    ['(defined? 0)',            1,      'defined? with single false but defined argument'],
-    ['(defined? #f)',           undef,  'defined? with single undefined argument'],
-    ['(defined? 0 #f 3)',       undef,  'defined? with mixed arguments'],
-    ['(defined? 1 2 0 3)',      1,      'defined? with all defined but some false arguments'],
+    ['(defined?)',                              undef,              'defined? without arguments'],
+    ['(defined? 0)',                            1,                  'defined? with single false but defined argument'],
+    ['(defined? #f)',                           undef,              'defined? with single undefined argument'],
+    ['(defined? 0 #f 3)',                       undef,              'defined? with mixed arguments'],
+    ['(defined? 1 2 0 3)',                      1,                  'defined? with all defined but some false arguments'],
 
-    ['(reverse `(1 2 3))',      [3, 2, 1],          'reversing a list'],
-    ['(reverse { x: 3 y: 4 })', {qw( 3 x 4 y )},    'reversing a hash'],
-    ['(reverse "foobar")',      'raboof',           'reversing a string'],
+    ['(reverse `(1 2 3))',                      [3, 2, 1],          'reversing a list'],
+    ['(reverse { x: 3 y: 4 })',                 {qw( 3 x 4 y )},    'reversing a hash'],
+    ['(reverse "foobar")',                      'raboof',           'reversing a string'],
 
     [   q{
             (define hs { x: 2 y: 3 z: 4 })
@@ -92,14 +93,60 @@ my @try = (
               ls1
               ls2)
         },
-        [   [2, 4],
-            [1, 2, 3, 4],
-            [2, 3],
+        [   [8, 9],
+            [8, 9],
+            [8, 9],
             { x => 8, y => 3, z => 9 },
             [8, 9],
             [1, 8, 9, 4],
         ],
         'setting compound values',
+    ],
+    [   q/
+            (define H  { x: 2 y: 3 })
+            (define L1 `(1 2 3 4))
+            (define L2 (append L1))
+            (list
+              (apply! 
+                (values H `(x y))
+                (-> (map _ ++)))
+              (apply!
+                (values L1)
+                (-> (map _ list)))
+              (apply!
+                (values L2 `(1 3))
+                (-> (map _ (-> { val: _ }))))
+              H
+              L1
+              L2)
+        /,
+        [   [3, 4],
+            [[1], [2], [3], [4]],
+            [{ val => 2 }, { val => 4 }],
+            { x => 3, y => 4 },
+            [[1], [2], [3], [4]],
+            [1, { val => 2 }, 3, { val => 4 }],
+        ],
+        'applying to compound values',
+    ],
+    [   q/
+            (define call-count 0)
+            (define (inc-count) 
+              (apply! call-count ++))
+            (define my-hash { x: 3 y: 4})
+            (define (get-hash)
+              (inc-count)
+              my-hash)
+            (define (get-keys)
+              (inc-count)
+              `(x y))
+            (apply! 
+              (values (get-hash) (get-keys)) 
+              (-> (map _ ++)))
+            call-count
+        /,
+        2,
+        'evaluation count for apply! get/set path arguments',
     ],
 );
 
@@ -185,6 +232,6 @@ with_libs(sub {
     is_result @$_ for @try;
     is_error  @$_ for @fails;
 
-}, qw( Data::Common Quoting ScopeHandling Data::Numbers Data::Lists ));
+}, qw( Data::Common Quoting ScopeHandling Data::Numbers Data::Lists Data::Strings ));
 
 done_testing;

@@ -36,6 +36,7 @@ use constant {
     E_APPLY             => 'Template::SX::Exception::Apply',
     E_PROTOTYPE         => 'Template::SX::Exception::Prototype',
     E_PARAMETER         => 'Template::SX::Exception::Parameter',
+    E_INSERT            => 'Template::SX::Exception::Insert',
 };
 
 use Sub::Exporter -setup => {
@@ -64,6 +65,7 @@ use Sub::Exporter -setup => {
         E_PROTOTYPE
         E_PARAMETER
         E_END_OF_STREAM
+        E_INSERT
 
         QUOTE_FULL
         QUOTE_QUASI

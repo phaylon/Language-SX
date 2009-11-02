@@ -4,7 +4,6 @@ class Template::SX::Library::Data::Common extends Template::SX::Library {
     use MooseX::ClassAttribute;
     use CLASS;
 
-    use TryCatch;
     use Data::Dump              qw( pp );
     use Scalar::Util            qw( blessed );
     use Template::SX::Types     qw( :all );

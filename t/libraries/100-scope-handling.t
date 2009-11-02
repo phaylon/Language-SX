@@ -7,12 +7,13 @@ use Test::Most;
 use utf8;
 
 my @try = (
-    ['(define foo 23) (define bar 42) (+ foo bar)',     65,     'succeeding definitions'],
-    ['(define foo) foo',                                undef,  'definition without value'],
+    ['(define foo 23) (define bar 42) (+ foo bar)',     65,         'succeeding definitions'],
+    ['(define foo) foo',                                undef,      'definition without value'],
 
-    ['((lambda (x y) (+ x y)) 3 4)',                    7,      'lambda generation and application'],
-    ['((lambda args args) 1 2)',                        [1, 2], 'lambda generation with all argument capture'],
-    ['((lambda (x . ls) ls) 1 2 3)',                    [2, 3], 'lambda generation with rest capture'],
+    ['((lambda (x y) (+ x y)) 3 4)',                    7,          'lambda generation and application'],
+    ['((lambda args args) 1 2)',                        [1, 2],     'lambda generation with all argument capture'],
+    ['((lambda (x . ls) ls) 1 2 3)',                    [2, 3],     'lambda generation with rest capture'],
+    ['((lambda (. ls) ls) 1 2 3)',                      [1, 2, 3],  'lambda generation with dot at signature start'],
 );
 
 push @try, [q{
@@ -102,12 +103,63 @@ push @try, [q{
 push @try, [q{
 
     (define x)
-    (set! x 23)
-    x
+    (list
+      (set! x 23)
+      x)
 
-}, 23, 'setting a variable'];
+}, [23, 23], 'setting a variable'];
+
+push @try, [
+    q{
+        (define count-up
+          (let ((n -1))
+            (<- (set! n (++ n)))))
+        (map `(a: b: c: d:)
+             (-> { _ (count-up) }))
+    },
+    [{ a => 0 }, { b => 1 }, { c => 2 }, { d => 3 }],
+    'thunk iteration',
+];
+
+push @try, [
+    q{
+        (list
+          (let ((let (<- 23)) (let* 42))
+            (+ (let) let*))
+          (let* ((let 23) (let* (<- (+ let 42))))
+            (list let (let*)))
+          (let-rec ((let (<- let*)) (let* 23))
+            (let)))
+    },
+    [65, [23, 65], 23],
+    'shadowing syntax with let variants',
+];
+
+push @try, [
+    q{
+        (define foo (lambda (lambda . define) (list (lambda) define)))
+        (define (bar lambda . define) (list (lambda) define))
+
+        (list (foo (<- 23) 42)
+              (bar (<- 17) 13))
+    },
+    [ [23, [42]], [17, [13]] ],
+    'shadowing syntax with lambda and lambda definition shortcut',
+];
+
+push @try, [
+    q{
+        (define foo 23)
+        (list
+          (apply! foo ++)
+          foo)
+    },
+    [24, 24],
+    'simple variable apply!',
+];
 
 with_libs(sub {
+    die_on_fail;
 
     is_result @$_ for @try;
 
@@ -152,10 +204,21 @@ with_libs(sub {
     is $@->location->{char}, 14, 'correct char number';
 
 
-    throws_ok { sx_load '(lambda (foo lambda bar) 7)' } E_RESERVED, 'reserved variable identifier in lambda';
+    throws_ok { sx_run '((lambda (n) n))' } E_PARAMETER, 'missing argument for defined lambda';
+    like $@, qr/not enough/, 'correct error message';
+    is $@->location->{line}, 1, 'correct line number';
+    is $@->location->{char}, 1, 'correct char number';
+
+    throws_ok { sx_run '((lambda (n) n) 1 2)' } E_PARAMETER, 'too many arguments for defined lambda';
+    like $@, qr/too many/, 'correct error message';
+    is $@->location->{line}, 1, 'correct line number';
+    is $@->location->{char}, 1, 'correct char number';
+
+
+    throws_ok { sx_load '(define (lambda bar) 7)' } E_RESERVED, 'reserved variable identifier in lambda shortcut';
     like $@, qr/reserved/, 'correct error message';
     is $@->location->{line}, 1, 'correct line number';
-    is $@->location->{char}, 14, 'correct char number';
+    is $@->location->{char}, 10, 'correct char number';
 
 
     throws_ok { sx_load '(define lambda)' } E_RESERVED, 'reserved variable definition';
@@ -171,7 +234,7 @@ with_libs(sub {
 
     for my $invalid_define ('(define)', '(define foo 23 8)', '(define 23 8)', '(define 8)') {
 
-        throws_ok { sx_load $invalid_define } E_SYNTAX, 'reserved variable definition with value';
+        throws_ok { sx_load $invalid_define } E_SYNTAX, "invalid $invalid_define definition";
         like $@, qr/invalid/, 'correct error message';
         is $@->location->{line}, 1, 'correct line number';
         is $@->location->{char}, 1, 'correct char number';
@@ -185,6 +248,11 @@ with_libs(sub {
         is $@->location->{line}, 1, 'correct line number';
         is $@->location->{char}, 1, 'correct char number';
     }
+
+    throws_ok { sx_load '(<-)' } E_SYNTAX, 'lambda thunk shortcut without body raises syntax error';
+    like $@, qr/expression/, 'correct error message';
+    is $@->location->{line}, 1, 'correct line number';
+    is $@->location->{char}, 1, 'correct char number';
 
     throws_ok { sx_load '(->)' } E_SYNTAX, 'single argument lambda shortcut without body raises syntax error';
     like $@, qr/expression/, 'correct error message';
@@ -223,7 +291,7 @@ with_libs(sub {
         is $@->location->{char}, $char, 'correct char number';
     }
 
-}, 'ScopeHandling', 'Data::Numbers', 'Quoting');
+}, 'ScopeHandling', 'Data::Numbers', 'Quoting', 'Data::Lists');
 
 done_testing;
 
