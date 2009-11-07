@@ -1,15 +1,17 @@
 
+PROCESSING:
+
+    my $processor = Template::SX::Process::TagBased;
+    my $body = $processor->process($sx->run('foo.sxt'));
+
+
+
 BASIC:
-
-    (cond ((if1 then1)
-           (if2 => then2withresult)))
-
-    (object? foo)
 
     (error "invalid something")
     (catch (λ () ...) (λ (e) ...))
 
-    (import-types
+    (import/types
       (Moose        (Str as: MooseStr) ArrayRef HashRef)
       (Path::Class  File Dir))
     (define StrList (ArrayRef Str))
@@ -17,30 +19,27 @@ BASIC:
     (is? value MyType)
     (define Foo (subtype Int where: odd?))
     (define-subtype Foo as: Int where odd?)
-    (assert Type value) ; blows up if fail
+    (assert-type Type value) ; blows up if fail
+    (type->predicate type)
+    (type-union TypeA TypeB ...)
+    (enum "foo" "bar")
 
     (lambda ([Str n] [Int m]) (list n m)) ; arg type check
 
     (let (([Int x] 23)) x)  ; ret type check
 
-    ((class-invocant "Foo") 'new x: 3 y: 4)
-    (call-in-list-context (class-invocant "Foo") :some-list 2 3 4)
-    (call-in-list-context applicant arg1 arg2 ...)
+    (@ 1 2 3)       ; (list 1 2 3)
+    (% x: 1 y: 2)   ; (hash x: 1 y: 2)
 
-    (stepper->iterator (-> (if (> _ 10) #f (++ _))) 0)
-    (range->iterator 0 1000)
-    (keys->iterator comp)
-    (values->iterator comp)
 
-    (iterate (range-iterator 1 10)
-      (-> (* _ 2))
-      (it-filter even?)
-      (it-replace
-        (lambda (value)
-          (map (range 0 3) (-> _ value)))))
 
-    (range 0 10)
-
+    (define (break-up foo)
+      (disect ((foo a b . rest)
+               (a { name: foo_name })
+               (b { item: foo_item })
+               (rest sibling . rest_of_siblings))
+        (say foo_name " has item " foo_item)
+        ...
 
 
 
@@ -89,6 +88,25 @@ HTML PROCESSOR:
 EXTENDED
 
 
+    (stepper->iterator (-> (if (> _ 10) #f (++ _))) 0)
+    (list->iterator ls)
+
+    (it/end)
+    (it/skip)
+
+    (iterate (it/range 1 10)
+      (-> (* _ 2))
+      (it/filter even?)
+      (it/replace
+        (lambda (value)
+          (map (range 0 3) (-> _ value)))))
+
+    (lambda (f x)
+      (apply/goto f (list (++ x))))
+    (lambda (n)
+      (if (< n 10)
+        (recurse (++ n))))
+
     (with-input-from *in* ...)
     (zip fun ls1 ls2 ls3 ...)
     (unzip ls fun)
@@ -120,7 +138,7 @@ EXTENDED
       (if (== x 0)
         (say "zero")
         (foo (-1 x))))
-    (lambda-case
+    (list-case ls
       ((x) x)
       ((x y) (+ x y))
       (args (apply * args)))

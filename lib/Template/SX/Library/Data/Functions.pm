@@ -4,6 +4,7 @@ class Template::SX::Library::Data::Functions extends Template::SX::Library {
     use MooseX::ClassAttribute;
     use CLASS;
 
+    use Sub::Call::Tail;
     use Template::SX::Types     qw( :all );
     use Template::SX::Constants qw( :all );
     use Template::SX::Util      qw( :all );
@@ -30,8 +31,22 @@ class Template::SX::Library::Data::Functions extends Template::SX::Library {
         ) unless ref $args[-1] eq 'ARRAY';
 
         push @args, @{ pop @args };
-        return apply_scalar apply => $op, arguments => \@args;
+        tail apply_scalar(apply => $op, arguments => \@args);
     });
+
+    CLASS->add_functions(
+        'apply/list' => CLASS->wrap_function('apply/list', { min => 2, types => [qw( applicant )], }, sub {
+            my ($apply, @args) = @_;
+
+            E_PROTOTYPE->throw(
+                class       => E_PARAMETER,
+                attributes  => { message => 'last argument to apply/list has to be a list' },
+            ) unless ref $args[-1] eq 'ARRAY';
+
+            push @args, @{ pop @args };
+            tail apply_scalar(apply => $apply, arguments => \@args, to_list => 1);
+        }),
+    );
 
     CLASS->add_functions(
         while => CLASS->wrap_function('while', { min => 3, max => 3, types => [qw( lambda lambda applicant )] }, sub {
@@ -51,17 +66,19 @@ class Template::SX::Library::Data::Functions extends Template::SX::Library {
         curry => CLASS->wrap_function('curry', { min => 2, types => [qw( applicant )] }, sub {
             my ($apply, @args) = @_;
             return sub {
-                return apply_scalar
+                tail apply_scalar(
                     apply       => $apply,
-                    arguments   => [@args, @_];
+                    arguments   => [@args, @_],
+                );
             };
         }),
         rcurry => CLASS->wrap_function('rcurry', { min => 2, types => [qw( applicant )] }, sub {
             my ($apply, @args) = @_;
             return sub {
-                return apply_scalar
+                tail apply_scalar(
                     apply       => $apply,
-                    arguments   => [@_, @args];
+                    arguments   => [@_, @args],
+                );
             };
         }),
     );

@@ -23,7 +23,65 @@ class Template::SX::Document::Cell
     }
 
     method compile_functional { 'FUNCT CELL' }
-    method compile_structural { 'STRUCT CELL' }
+
+    method _compile_structural_template (Object $inf, Object $item, CodeRef $collect) {
+
+        if ($item->isa('Template::SX::Document::Cell::Application')) {
+
+            if ($item->is_in_unquoting_state($inf) and (my $str = $item->is_unquote($inf))) {
+                my ($identifier, @args) = $item->all_nodes;
+
+                if (defined( my $syntax = $item->_try_compiling_as_syntax($inf, $identifier, \@args) )) {
+                    return $collect->($syntax);
+                }
+                else {
+                    E_INTERNAL->throw(
+                        message     => "no syntax handler found for '$str' unquotes",
+                        location    => $identifier->location,
+                    );
+                }
+            }
+
+            my @item_templates = map { $self->_compile_structural_template($inf, $_, $collect) } $item->all_nodes;
+            return sprintf '[%s]', join ', ', @item_templates;
+        }
+        elsif ($item->isa('Template::SX::Document::Cell::Hash')) {
+
+            my @item_templates = map { $self->_compile_structural_template($inf, $_, $collect) } $item->all_nodes;
+            return sprintf '+{%s}', join ', ', @item_templates;
+        }
+        else {
+
+            return $collect->($item);
+        }
+    }
+
+    method compile_structural (Object $inf) {
+
+        my @args;
+        my $collector = sub {
+            push @args, shift @_;
+            return sprintf '@{ $_[%d] }', $#args;
+        };
+
+        my $template = sprintf(
+            'sub { my @res = (%s); $res[0] }',
+            $self->_compile_structural_template($inf, $self, $collector),
+        );
+
+        return $inf->render_call(
+            method  => 'make_structure_builder',
+            args    => {
+                template    => $template,
+                values      => sprintf(
+                    '[%s]', join(
+                        ', ',
+                        map { blessed($_) ? $_->compile($inf, SCOPE_STRUCTURAL) : $_ } @args
+                    ),
+                ),
+            },
+        );
+    }
 
     method _is_closing (Str $value) {
         return defined $OpenerFor{ $value };

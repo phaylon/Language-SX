@@ -8,6 +8,7 @@ class Template::SX::Library::ScopeHandling extends Template::SX::Library {
 
     use TryCatch;
     use Sub::Name;
+    use Sub::Call::Tail;
     use Scalar::Util                qw( blessed );
     use Data::Dump                  qw( pp );
     use Template::SX::Constants     qw( :all );
@@ -466,7 +467,7 @@ class Template::SX::Library::ScopeHandling extends Template::SX::Library {
             $new_env->{vars}{ $_->[0] } = $_->[1]->($new_env)
                 for @$vars;
 
-            return $sequence->($new_env);
+            tail $new_env->$sequence;
         };
     }
 
@@ -488,7 +489,8 @@ class Template::SX::Library::ScopeHandling extends Template::SX::Library {
             }
 
 #            warn "calling sequence ", pp($env);
-            return $sequence->($env);
+#            return $sequence->($env);
+            tail $env->$sequence;
         };
     }
 
@@ -503,7 +505,8 @@ class Template::SX::Library::ScopeHandling extends Template::SX::Library {
                 },
             };
 
-            return $sequence->($new_env);
+#            return $sequence->($new_env);
+            tail $new_env->$sequence;
         };
     }
 
@@ -568,11 +571,19 @@ class Template::SX::Library::ScopeHandling extends Template::SX::Library {
             location    => $cell->location,
         ) unless @_;
 
+        my @seq = @_;
         return $inf->render_call(
             library => $CLASS,
             method  => 'make_lambda_generator',
             args    => {
-                sequence    => $inf->with_lexicals('_')->render_sequence([@_]),
+                sequence    => $inf
+                                ->with_lexicals('_')
+                                ->with_new_escape_scope
+                                ->call(sub { 
+                                    $_->render_escape_wrap(
+                                        $_->render_sequence([@seq]),
+                                    );
+                                }),
                 has_max     => 1,
                 has_min     => 1,
                 max         => 1,
@@ -635,7 +646,9 @@ class Template::SX::Library::ScopeHandling extends Template::SX::Library {
                 $vars{ $rest_var } = [@_]
                     if $rest_var;
 
-                return $sequence->({ vars => \%vars, parent => $env });
+                my $new_env = { vars => \%vars, parent => $env };
+                tail $new_env->$sequence;
+#                return $sequence->({ vars => \%vars, parent => $env });
             };
         };
     }

@@ -1,8 +1,10 @@
 #!/usr/bin/env perl
+use utf8;
 use strict;
 use warnings;
 use Template::SX::Test      qw( :all );
 use Template::SX::Constants qw( :all );
+use Data::Dump              qw( pp );
 use Test::Most;
 
 do {
@@ -97,6 +99,16 @@ do {
     is $x->value, 'x', 'first variable';
     is $y->value, 'y', 'second variable';
     is $z->value, 'z', 'third variable';
+};
+
+do {
+    my $doc = sx_read q{  »
+            foo bar
+            baz qux
+        «
+    };
+    isa_ok $doc->get_node(0), 'Template::SX::Document::String::Constant';
+    is $doc->get_node(0)->value, "foo bar\nbaz qux", 'correct multiline string';
 };
 
 throws_ok { sx_read 'foo " bar' } E_SYNTAX, 'string without end';

@@ -6,16 +6,18 @@ class Template::SX::Inflator {
     use Template::SX;
     use Carp                        qw( croak );
     use Sub::Name                   qw( subname );
+    use Sub::Call::Tail;
     use TryCatch;
     use List::AllUtils              qw( uniq );
     use Scalar::Util                qw( blessed );
     use Template::SX::Types         qw( :all );
     use Template::SX::Constants     qw( :all );
     use Template::SX::Util          qw( :all );
-    use MooseX::Types::Moose        qw( ArrayRef Str Object Undef HashRef );
+    use MooseX::Types::Moose        qw( ArrayRef Str Object Undef HashRef CodeRef );
     use MooseX::Types::Path::Class  qw( Dir File );
     use Data::Dump                  qw( pp );
     use Path::Class                 qw( dir file );
+    use Continuation::Escape;
 
     BEGIN {
         if ($Template::SX::TRACK_INSTANCES) {
@@ -62,10 +64,15 @@ class Template::SX::Inflator {
         default     => sub { {} },
     );
 
-    has _document_cache => (
+    has document_loader => (
         is          => 'ro',
-        isa         => HashRef,
+        isa         => CodeRef,
         required    => 1,
+    );
+
+    has _escape_scope => (
+        is          => 'ro',
+        isa         => Object,
     );
 
     method create_value_scope (@args) {
@@ -91,32 +98,76 @@ class Template::SX::Inflator {
     }
 
     method build_document_loader () {
-
-        my $cache = $self->_document_cache;
-        my @libs  = map { blessed($_) } $self->all_libraries;
-        my $l_key = join '|', @libs;
-
-        return sub {
-            my ($file) = @_;
-
-            E_PROTOTYPE->throw(
-                class       => E_INSERT,
-                attributes  => { message => "unable to load non-existing file $file", path => $file },
-            ) unless -e $file;
-
-            return $cache->{ $file }{ $l_key }
-                if exists $cache->{ $file }{ $l_key };
-
-            return $cache->{ $file }{ $l_key } ||= do {
-
-                my $sx = Template::SX->new(default_libraries => [@libs]);
-                $sx->read(file => $file);
-            };
-        };
+        return $self->document_loader;
     }
 
     method known_lexical (Str $name) {
         return $self->_lexical_map->{ $name };
+    }
+
+    method with_new_escape_scope {
+
+        require Template::SX::Inflator::EscapeScope;
+        return $self->meta->clone_object($self, 
+            _escape_scope => Template::SX::Inflator::EscapeScope->new,
+        );
+    }
+
+    method render_escape_wrap (Str $body) {
+
+        return $body unless $self->_escape_scope;
+        return $self->_escape_scope->wrap($self, $body);
+    }
+
+    method make_escape_scope (CodeRef :$scope!) {
+
+        return subname ESCAPE_SCOPE => sub {
+            my $env = shift;
+
+            my $res = call_cc {
+                my $escape = shift;
+
+                [return => $scope->({ parent => $env, escape => $escape, vars => {} })];
+            };
+
+            if ($res->[0] eq 'return') {
+                return $res->[1];
+            }
+        };
+    }
+
+    my $FindEscape;
+    $FindEscape = sub {
+        my ($env, $find) = @_;
+
+        return $env->{escape} 
+            if $env->{escape};
+
+        if ($env->{parent}) {
+            @_ = ($env->{parent}, $find);
+            goto $find;
+        }
+
+        return undef;
+    };
+
+    method make_escape_scope_exit (Str :$type, ArrayRef[CodeRef] :$values) {
+
+        return subname ESCAPE_EXIT => sub {
+            my $env    = shift;
+            my $escape = $FindEscape->($env, $FindEscape)
+                or E_PROTOTYPE->throw(
+                    class       => E_INTERNAL,
+                    attributes  => { message => 'no escape scope found that can be exited' },
+                );
+
+            $escape->([$type, map { $_->($env) } @$values]);
+        }
+    }
+
+    method call (CodeRef $cb) {
+        local $_ = $self;
+        return $cb->($self);
     }
 
     method with_lexicals (Str @lexicals) {
@@ -149,6 +200,9 @@ class Template::SX::Inflator {
                 $_->init_arg
                 ? ($_->init_arg, $_->get_value($self))
                 : ()
+            } 
+            grep {
+                defined $_->get_value($self)
             } $self->meta->get_all_attributes,
         );
     }
@@ -233,7 +287,7 @@ class Template::SX::Inflator {
     method serialize {
 
         return sprintf(
-            '(do { require %s; %s->new(traits => %s, libraries => %s, _document_cache => %s) })',
+            '(do { require %s; %s->new(traits => %s, libraries => %s, document_loader => %s) })',
             ( __PACKAGE__ ) x 2,
            pp([ 
 #                map { s/${PluginNamespace}:://; $_ }
@@ -243,7 +297,7 @@ class Template::SX::Inflator {
             pp([
                 map { ref } $self->all_libraries
             ]),
-            '$DOC_CACHE || {}',
+            '$DOC_LOADER || {}',
         );
     }
 
@@ -341,7 +395,9 @@ class Template::SX::Inflator {
                     for keys %optional;
             }
 
-            return scalar $sequence->(\%args);
+            my $args = \%args;
+            tail $args->$sequence;
+#            return scalar $sequence->(\%args);
         };
     }
 
@@ -425,6 +481,16 @@ class Template::SX::Inflator {
         );
     }
 
+    method make_structure_builder (ArrayRef[CodeRef] :$values, CodeRef :$template) {
+
+        return subname STRUCTURE => sub {
+            my $env = shift;
+            @_ = map { [( $_->($env) )] } @$values;
+            goto $template;
+#            return $template->(map { [( $_->($env) )] } @$values);
+        };
+    }
+
     method make_sequence (ArrayRef[CodeRef] :$elements) {
 
         return subname SEQUENCE => sub {
@@ -433,12 +499,17 @@ class Template::SX::Inflator {
             return undef 
                 unless @$elements;
 
-            my @res;
+            my $tail = $elements->[-1];
+            $_->($env) for @{ $elements }[0 .. ($#$elements - 1)];
 
-            push @res, $_->($env)
-                for @$elements;
+            tail $env->$tail;
 
-            return $res[-1];
+#            my @res;
+
+#            push @res, $_->($env)
+#                for @$elements;
+
+#            return $res[-1];
         };
     }
 
@@ -506,7 +577,7 @@ class Template::SX::Inflator {
         return eval join "\n",
             'Sub::Name::subname q(APPLY), sub { my $op = shift;',
                 sprintf('#line %d "%s"', $loc->{line}, $loc->{source}),
-                'return scalar $op->(@_);',
+                'return $op->(@_);',
             '}';
     }
 
@@ -549,7 +620,10 @@ class Template::SX::Inflator {
             
             return $env  if exists $env->{vars}{ $name };
             return undef unless exists $env->{parent};
-            return $exists->($env->{parent});
+
+            @_ = ($env->{parent});
+            goto $exists;
+#            return $exists->($env->{parent});
         };
 
         my $found_env;

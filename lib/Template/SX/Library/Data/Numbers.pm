@@ -22,6 +22,12 @@ class Template::SX::Library::Data::Numbers extends Template::SX::Library {
     );
 
     CLASS->add_functions(
+        'range' => CLASS->wrap_function('range', { min => 2, max => 2 }, sub {
+            return [ +$_[0] .. +$_[1] ];
+        }),
+    );
+
+    CLASS->add_functions(
         '<=>' => sub {
 
             E_PROTOTYPE->throw(

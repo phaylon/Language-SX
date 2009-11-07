@@ -1,8 +1,10 @@
 use MooseX::Declare;
+use utf8;
 
 class Template::SX::Document::String {
 
     use String::Escape          qw( unprintable );
+    use Scalar::Util            qw( blessed );
     use Template::SX::Constants qw( :all );
     use Template::SX::Types     qw( :all );
     use MooseX::Types::Moose    qw( Str ArrayRef Object );
@@ -49,18 +51,20 @@ class Template::SX::Document::String {
         my $skipped = 0;
         $value = $stream->content_substr($loc->{offset});
 
-        $value =~ s/\A"//
+        $value =~ s/\A ( " | » ) //x
             or E_INTERNAL->throw(
                 message     => "invalid string format: $value",
                 location    => $loc,
             );
+
+        my $end_mark = $1 eq '"' ? '"' : '«';
 
         $skipped++;
         my @parts;
 
         while (length $value) {
 
-            if ($value =~ s/\A (.*?) ( \$ | (?: (?<! \\ ) " ) ) //x) {
+            if ($value =~ s/\A (.*?) ( \$ | (?: (?<! \\ ) $end_mark ) ) //xs) {
                 my ($const, $end) = ($1, $2);
 
                 push @parts, Template::SX::Document::String::Constant->new(
@@ -97,6 +101,15 @@ class Template::SX::Document::String {
                 else {
 
                     $stream->offset($loc->{offset} + $skipped);
+
+                    if ($end_mark ne '"') {
+
+                        $parts[0]->clean_front;
+
+                        $_->clean_lines for grep { blessed $_ } @parts;
+
+                        $parts[-1]->clean_end;
+                    }
 
                     if (@parts == 1) {
                         return $parts[0];

@@ -84,8 +84,14 @@ my @should_work = (
 
     ['(even? 2 4 6)',   1,          'even? with all even values'],
     ['(even? 2 3 4)',   undef,      'even? with all even but one odd value'],
+
     ['(odd? 3 5 7)',    1,          'odd? with all odd values'],
     ['(odd? 5 6 7)',    undef,      'odd? with all odd but one even value'],
+
+    ['(range 0 3)',     [0..3],     'range with normal arguments'],
+    ['(range -1 1)',    [-1..1],    'range with negative to positive arguments'],
+    ['(range 3 2)',     [],         'empty range'],
+    ['(range 3 3)',     [3],        'single step range'],
 );
 
 my @should_fail = (
@@ -113,6 +119,10 @@ my @should_fail = (
 
     ['(even?)',         [E_PARAMETER,   qr/one or more/],   'even? without arguments'],
     ['(odd?)',          [E_PARAMETER,   qr/one or more/],   'odd? without arguments'],
+
+    ['(range)',         [E_PARAMETER,   qr/not enough/],    'range without arguments'],
+    ['(range 1)',       [E_PARAMETER,   qr/not enough/],    'range with single argument'],
+    ['(range 1 2 3)',   [E_PARAMETER,   qr/too many/],      'range with more than two arguments'],
 );
 
 with_libs(sub {

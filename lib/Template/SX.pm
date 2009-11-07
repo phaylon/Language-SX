@@ -5,10 +5,12 @@ class Template::SX {
     with 'MooseX::Traits';
 
     use Template::SX::Types         qw( :all );
+    use Template::SX::Constants     qw( :all );
     use MooseX::Types::Moose        qw( CodeRef Str HashRef Bool ArrayRef );
     use MooseX::Types::Path::Class  qw( File Dir );
     use MooseX::MultiMethods;
     use MooseX::StrictConstructor;
+    use Scalar::Util                qw( weaken );
     use Path::Class                 qw( file dir );
 
     BEGIN {
@@ -19,6 +21,9 @@ class Template::SX {
     }
 
     our $VERSION = '0.001';
+
+    Class::MOP::load_class($_)
+        for E_PROTOTYPE;
 
     has reader => (
         is          => 'ro', 
@@ -32,11 +37,15 @@ class Template::SX {
     );
 
     has default_libraries => (
+        traits      => [qw( Array )],
         is          => 'ro',
         isa         => LibraryList,
         required    => 1,
         coerce      => 1,
         default     => sub { require Template::SX::Library::Core; [Template::SX::Library::Core->new] },
+        handles     => {
+            all_libraries   => 'elements',
+        },
     );
 
     has document_traits => (
@@ -79,7 +88,11 @@ class Template::SX {
         return Template::SX::Reader->new(
             document_libraries  => [@{ $self->default_libraries }],
             document_traits     => [@{ $self->document_traits }],
-            document_cache      => $self->_document_cache,
+            document_loader     => (sub { 
+                my $sx = shift;
+                weaken $sx;
+                return sub { $sx->read(file => $_[0]) };
+            })->($self),
         );
     }
 
@@ -98,8 +111,24 @@ class Template::SX {
     }
 
     method _read_file (File $source does coerce) {
+
+        E_PROTOTYPE->throw(
+            class       => E_FILE,
+            attributes  => { message => "unable to load non-existing file $source", path => $source },
+        ) unless -e $source;
+
+        my @libs = map { blessed($_) } $self->all_libraries;
+        my $key  = join '|', @libs;
+
+        my $cache = $self->_document_cache;
+
+        return $cache->{ $source }{ $key }
+            if exists $cache->{ $source }{ $key };
+
         my $content = $source->slurp;
-        return $self->_document_from_string($content, $source->absolute->stringify);
+
+        return $cache->{ $source }{ $key } 
+            = $self->_document_from_string($content, $source->absolute->stringify);
     }
 
 

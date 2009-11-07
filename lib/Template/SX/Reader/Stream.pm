@@ -1,4 +1,5 @@
 use MooseX::Declare;
+use utf8;
 
 class Template::SX::Reader::Stream {
 
@@ -377,8 +378,8 @@ class Template::SX::Reader::Stream {
     method _parse_strings () {
 
         my $rx = qr/
-              " .*
-        /x;
+              (?: " | » ) .*
+        /xs;
 
         if (defined( my $str = $self->try_regex($rx) )) {
 

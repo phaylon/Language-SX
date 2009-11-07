@@ -8,6 +8,7 @@ use Test::Most;
 
 class TestObj {
     method decorate (Str $body) { "[$body]" }
+    method values { 1, 2, 3 }
 }
 
 my @try = (
@@ -60,13 +61,28 @@ my @try = (
         [3, [1, 2, 3]],
         'while iteration',
     ],
+
+    [   ['(apply/list foo 1 2 `(3))', { foo => sub { @_ } }],
+        [1, 2, 3],
+        'applying in list context',
+    ],
+    [   ['(apply/list obj :values `())', { obj => TestObj->new }],
+        [1, 2, 3],
+        'applying an object in list context',
+    ],
 );
 
 my @fails = (
+
     ['(apply)',             [E_PARAMETER,   qr/argument/],      'apply without any arguments'],
     ['(apply +)',           [E_PARAMETER,   qr/argument/],      'apply with missing arguments'],
     ['(apply + 3 4)',       [E_PARAMETER,   qr/list/],          'apply with non-list as last argument'],
     ['(apply 3 `())',       [E_TYPE,        qr/applicant/],     'apply with invalid applicant'],
+
+    ['(apply/list)',        [E_PARAMETER,   qr/argument/],      'apply/list without any arguments'],
+    ['(apply/list +)',      [E_PARAMETER,   qr/argument/],      'apply/list with missing arguments'],
+    ['(apply/list + 3 4)',  [E_PARAMETER,   qr/list/],          'apply/list with non-list as last argument'],
+    ['(apply/list 3 `())',  [E_TYPE,        qr/applicant/],     'apply/list with invalid applicant'],
 
     ['(lambda?)',           [E_PARAMETER,   qr/at least/],      'lambda predicate without arguments'],
 

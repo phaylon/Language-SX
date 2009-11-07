@@ -6,6 +6,7 @@ class Template::SX::Document::Cell::Application
     use Data::Dump              qw( pp );
     use Perl6::Junction         qw( any );
     use Template::SX::Constants qw( :all );
+    use Scalar::Util            qw( blessed );
 
     Class::MOP::load_class($_)
         for E_INTERNAL, E_SYNTAX;
@@ -27,8 +28,8 @@ class Template::SX::Document::Cell::Application
 
     method is_unquote (Object $inf) {
 
-        my $node = $self->head_node
-            or return undef;
+        return undef unless $self->node_count;
+        my $node = $self->get_node(0);
 
         return undef
             unless $node->isa('Template::SX::Document::Bareword');
@@ -49,34 +50,93 @@ class Template::SX::Document::Cell::Application
         return 1;
     }
 
-    method compile_structural (Object $inf) {
+    # TODO remove
+    method __former_compile_structural_template (Object $inf, Object $item, CodeRef $collect) {
 
-        if ($self->is_in_unquoting_state($inf) and (my $str = $self->is_unquote($inf))) {
-            my ($identifier, @args) = $self->all_nodes;
+        if ($item->isa('Template::SX::Document::Cell::Application')) {
 
-            if (defined( my $syntax = $self->_try_compiling_as_syntax($inf, $identifier, \@args) )) {
-                return $syntax;
+            if ($item->is_in_unquoting_state($inf) and (my $str = $item->is_unquote($inf))) {
+                my ($identifier, @args) = $item->all_nodes;
+
+                if (defined( my $syntax = $item->_try_compiling_as_syntax($inf, $identifier, \@args) )) {
+                    return $collect->($syntax);
+                }
+                else {
+                    E_INTERNAL->throw(
+                        message     => "no syntax handler found for '$str' unquotes",
+                        location    => $identifier->location,
+                    );
+                }
             }
-            else {
-                E_INTERNAL->throw(
-                    message     => "no syntax handler found for '$str' unquotes",
-                    location    => $identifier->location,
-                );
-            }
+
+            my @item_templates = map { $self->_compile_structural_template($inf, $_, $collect) } $item->all_nodes;
+            return sprintf '[%s]', join ', ', @item_templates;
         }
+        elsif ($item->isa('Template::SX::Document::Cell::Hash')) {
+
+            my @item_templates = map { $self->_compile_structural_template($inf, $_, $collect) } $item->all_nodes;
+            return sprintf '+{%s}', join ', ', @item_templates;
+        }
+        else {
+
+            return $collect->($item);
+        }
+    }
+
+    # TODO remove
+    method __former_compile_structural (Object $inf) {
+
+        my @args;
+        my $collector = sub {
+            push @args, shift @_;
+            return sprintf '@{ $_[%d] }', $#args;
+        };
+
+        my $template = sprintf(
+            'sub { %s }',
+            $self->_compile_structural_template($inf, $self, $collector),
+        );
 
         return $inf->render_call(
-            method  => 'make_list_builder',
+            method  => 'make_structure_builder',
             args    => {
-                items   => sprintf(
+                template    => $template,
+                values      => sprintf(
                     '[%s]', join(
                         ', ',
-                        # list context to allow for spliced unquoting
-                        map { ($_->compile($inf, SCOPE_STRUCTURAL)) } $self->all_nodes,
+                        map { blessed($_) ? $_->compile($inf, SCOPE_STRUCTURAL) : $_ } @args
                     ),
                 ),
             },
         );
+
+#        if ($self->is_in_unquoting_state($inf) and (my $str = $self->is_unquote($inf))) {
+#            my ($identifier, @args) = $self->all_nodes;
+#
+#            if (defined( my $syntax = $self->_try_compiling_as_syntax($inf, $identifier, \@args) )) {
+#                return $syntax;
+#            }
+#            else {
+#                E_INTERNAL->throw(
+#                    message     => "no syntax handler found for '$str' unquotes",
+#                    location    => $identifier->location,
+#                );
+#            }
+#        }
+#
+#        return $inf->render_call(
+#            method  => 'make_list_builder',
+#            args    => {
+#                items   => sprintf(
+#                    '[%s]', join(
+#                        ', ',
+#                        # list context to allow for spliced unquoting
+#                        map { ($_->compile($inf, SCOPE_STRUCTURAL)) } $self->all_nodes,
+#                    ),
+#                ),
+#            },
+#        );
+
     }
 
     method compile_functional (Object $inf) {

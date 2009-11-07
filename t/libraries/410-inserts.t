@@ -71,12 +71,12 @@ my @should_fail = (
     ['(import "simple.sxm" { case: upper } foo)',   [E_SYNTAX,      qr/foo/],               'importing unknown export'],
     ['(import)',                                    [E_SYNTAX,      qr/expects/],           'import without arguments'],
     ['(import "simple.sxm" 23)',                    [E_TYPE,        qr/hash/],              'import with non-hash argument'],
-    ['(import "NOTTHERE.sx")',                      [E_INSERT,      qr/file/],              'importing non-existant file'],
+    ['(import "NOTTHERE.sx")',                      [E_FILE,        qr/file/],              'importing non-existant file'],
 
     ['(include)',                                   [E_SYNTAX,      qr/expects/],           'include without arguments'],
     ['(include "simple.sxm" 23)',                   [E_TYPE,        qr/hash/],              'include with non-hash argument'],
     ['(include "simple.sxm" {} 23)',                [E_SYNTAX,      qr/expects/],           'include with more than two arguments'],
-    ['(include "NOTTHERE.sx")',                     [E_INSERT,      qr/file/],              'including non-existant file'],
+    ['(include "NOTTHERE.sx")',                     [E_FILE,        qr/file/],              'including non-existant file'],
     ['(include "simple.sxm")',                      [E_PARAMETER,   qr/missing.*case/],     'including with missing argument'],
 );
 

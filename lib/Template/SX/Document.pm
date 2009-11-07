@@ -81,15 +81,15 @@ class Template::SX::Document
     );
 
     has last_calculated_exports => (
-        isa         => HashRef,
+#        isa         => HashRef,
         reader      => 'last_calculated_exports',
         writer      => '_set_last_calculated_exports',
         default     => sub { {} },
     );
 
-    has _document_cache => (
+    has document_loader => (
         is          => 'ro',
-        isa         => HashRef,
+        isa         => CodeRef,
         required    => 1,
         default     => sub { {} },
     );
@@ -108,7 +108,7 @@ class Template::SX::Document
         my $inflator = Template::SX::Inflator->new_with_resolved_traits(
             libraries       => [$self->all_libraries],
             _object_cache   => $self->_object_cache,
-            _document_cache => $self->_document_cache,
+            document_loader => $self->document_loader,
         );
 
         my $compiled = $inflator->compile_base([$self->all_nodes], $self->start_scope);
@@ -129,7 +129,7 @@ class Template::SX::Document
     method load () {
 
         local $Template::SX::MODULE_META = $self->_module_meta;
-        my $DOC_CACHE = $self->_document_cache;
+        my $DOC_LOADER = $self->document_loader;
         my $code = eval sprintf 'package Template::SX::VOID; %s', $self->compiled_body;
 
         if ($@) {

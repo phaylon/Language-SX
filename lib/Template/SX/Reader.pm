@@ -19,9 +19,9 @@ class Template::SX::Reader {
         default     => sub { [] },
     );
 
-    has document_cache => (
+    has document_loader => (
         is          => 'ro',
-        isa         => HashRef,
+        isa         => CodeRef,
         required    => 1,
     );
 
@@ -44,7 +44,7 @@ class Template::SX::Reader {
             libraries       => [@{ $self->document_libraries }],
             traits          => [@{ $self->document_traits }],
           ( $source_name ? (source_name => $source_name) : () ),
-            _document_cache => $self->document_cache,
+            document_loader => $self->document_loader,
         );
 
         return $doc;

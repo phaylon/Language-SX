@@ -29,7 +29,7 @@ class Template::SX::Document::Cell::Hash
         );
     }
 
-    method compile_structural (Object $inf) {
+    method __former_compile_structural (Object $inf) {
 
         return $inf->render_call(
             method  => 'make_hash_builder',

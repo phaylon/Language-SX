@@ -15,4 +15,25 @@ class Template::SX::Document::String::Constant
             },
         );
     }
+
+    method clean_end {
+
+        my $val = $self->value;
+        $val =~ s/ \s* \Z //xs;
+        $self->value($val);
+    }
+
+    method clean_front {
+
+        my $val = $self->value;
+        $val =~ s/ \A \s* //xs;
+        $self->value($val);
+    }
+
+    method clean_lines {
+
+        my $val = $self->value;
+        $val =~ s/ (?: ^ \s* | \s* $ ) //gxm;
+        $self->value($val);
+    }
 }
