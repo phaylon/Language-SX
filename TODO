@@ -11,44 +11,6 @@ BASIC:
     (error "invalid something")
     (catch (λ () ...) (λ (e) ...))
 
-    (import/types
-      (Moose        (Str as: MooseStr) ArrayRef HashRef)
-      (Path::Class  File Dir))
-    (define StrList (ArrayRef Str))
-    (coerce value MyType)
-    (is? value MyType)
-    (define Foo (subtype Int where: odd?))
-    (define-subtype Foo as: Int where odd?)
-    (assert-type Type value) ; blows up if fail
-    (type->predicate type)
-    (type-union TypeA TypeB ...)
-    (enum "foo" "bar")
-
-    (lambda ([Str n] [Int m]) (list n m)) ; arg type check
-
-    (let (([Int x] 23)) x)  ; ret type check
-
-    (@ 1 2 3)       ; (list 1 2 3)
-    (% x: 1 y: 2)   ; (hash x: 1 y: 2)
-
-
-
-    (define (break-up foo)
-      (disect ((foo a b . rest)
-               (a { name: foo_name })
-               (b { item: foo_item })
-               (rest sibling . rest_of_siblings))
-        (say foo_name " has item " foo_item)
-        ...
-
-
-
-
-    (Dict foo: (ArrayRef Int)
-          bar: (Tuple Str Str HashRef))
-
-
-
 
 
 
@@ -61,6 +23,18 @@ OBJECTS:
 HTML PROCESSOR:
 
     maybe: (uri-for-action /foo/bar: captures params 1 2 3)
+
+    (let (([Int x] 23)) x)  ; ret type check
+
+
+
+    (define (break-up foo)
+      (disect ((foo a b . rest)
+               (a { name: foo_name })
+               (b { item: foo_item })
+               (rest sibling . rest_of_siblings))
+        (say foo_name " has item " foo_item)
+        ...
 
     (define (wrapper page)
       `(html

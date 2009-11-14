@@ -163,6 +163,60 @@ with_libs(sub {
 
     is_result @$_ for @try;
 
+    do {
+        my $l = sx_run '(import/types Moose) (lambda ((Int x where even?)) x)';
+        is $l->(6), 6, 'lambda with typed parameter';
+
+        throws_ok { $l->("foo") } E_PROTOTYPE, 'wrong type for value throws exception';
+        is $@->class, E_PARAMETER, 'thrown exception would be parameter';
+        like $@, qr/Int/, 'type constraint in error message';
+
+        throws_ok { $l->(3) } E_PROTOTYPE, 'wrong value but correct type throws exception';
+        is $@->class, E_PARAMETER, 'thrown exception would be parameter';
+        like $@, qr/custom/, 'correct error message';
+
+
+        my $d = sx_run '(import/types Moose) (define (foo (Int x where even?)) x) foo';
+        is $d->(6), 6, 'define with typed parameter';
+
+        throws_ok { $d->("foo") } E_PROTOTYPE, 'wrong type for value throws exception';
+        is $@->class, E_PARAMETER, 'thrown exception would be parameter';
+        like $@, qr/Int/, 'type constraint in error message';
+
+        throws_ok { $d->(3) } E_PROTOTYPE, 'wrong value but correct type throws exception';
+        is $@->class, E_PARAMETER, 'thrown exception would be parameter';
+        like $@, qr/custom/, 'correct error message';
+
+
+        throws_ok { sx_run '(lambda ((Int)) 23)' } E_SYNTAX, 'single item in parameter specification raises exception';
+        like $@, qr/type and a name/, 'correct error message';
+
+        throws_ok { sx_run '((lambda ((3 foo)) foo) 3)' } E_TYPE, 'numeric type in parameter specification raises exception';
+        like $@, qr/type constraint/, 'correct error message';
+
+        throws_ok { sx_run '((lambda ((foo 3)) foo) 3)' } E_SYNTAX, 'numeric variable name in parameter specification raises exception';
+        like $@, qr/bareword/, 'correct error message';
+
+        throws_ok { sx_run '((lambda ((Int foo 3)) foo) 3)' } E_SYNTAX, 'numeric option name in parameter specification raises exception';
+        like $@, qr/bareword/, 'correct error message';
+
+        throws_ok { sx_run '((lambda ((Int foo is 3)) foo) 3)' } E_SYNTAX, 'numeric trait name in parameter specification raises exception';
+        like $@, qr/bareword/, 'correct error message';
+
+
+        throws_ok { sx_run '(import/types Moose) ((lambda ((Int foo where 3)) foo) 3)' } E_TYPE, 
+            'numeric where condition in parameter specification raises exception';
+        like $@, qr/code reference/, 'correct error message';
+
+        throws_ok { sx_run '(import/types Moose) ((lambda ((Int foo gnargh 3)) foo) 3)' } E_SYNTAX, 
+            'unknown option name in parameter specification raises exception';
+        like $@->message, qr/option.*gnargh/, 'correct error message';
+
+        throws_ok { sx_run '(import/types Moose) ((lambda ((Int foo is gnargh)) foo) 3)' } E_SYNTAX, 
+            'unknown trait name in parameter specification raises exception';
+        like $@->message, qr/trait.*gnargh/, 'correct error message';
+    };
+
     for my $wrong_arg_count ('(lambda)', '(lambda (x))') {
 
         throws_ok { sx_load $wrong_arg_count } E_SYNTAX, 'lambda with missing arguments raises syntax exception';
@@ -178,12 +232,12 @@ with_libs(sub {
 
 
     throws_ok { sx_load '(lambda (foo 23) 7)' } E_SYNTAX, 'invalid item in lambda parameter list';
-    like $@, qr/lambda.*parameter list/, 'correct error message';
+    like $@, qr/parameter list/, 'correct error message';
     is $@->location->{line}, 1, 'correct line number';
     is $@->location->{char}, 14, 'correct char number';
 
     throws_ok { sx_load '(lambda (foo . 23) 7)' } E_SYNTAX, 'invalid item in lambda parameter list rest position';
-    like $@, qr/lambda.*parameter list/, 'correct error message';
+    like $@, qr/parameter list/, 'correct error message';
     is $@->location->{line}, 1, 'correct line number';
     is $@->location->{char}, 16, 'correct char number';
 
@@ -291,7 +345,7 @@ with_libs(sub {
         is $@->location->{char}, $char, 'correct char number';
     }
 
-}, 'ScopeHandling', 'Data::Numbers', 'Quoting', 'Data::Lists');
+}, 'ScopeHandling', 'Data::Numbers', 'Quoting', 'Data::Lists', 'Types');
 
 done_testing;
 

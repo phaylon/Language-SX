@@ -11,14 +11,80 @@ use Class::MOP;
 use namespace::clean;
 
 Class::MOP::load_class($_)
-    for E_PROTOTYPE;
+    for E_PROTOTYPE, E_SYNTAX;
 
 use Sub::Exporter -setup => {
     exports => [qw( 
         apply_scalar 
         document_loader
+        deparse_parameter_spec
     )],
 };
+
+sub deparse_parameter_spec {
+    my ($inf, $param) = @_;
+
+    if ($param->isa('Template::SX::Document::Bareword')) {
+
+        return $param->value;
+    }
+    elsif ($param->isa('Template::SX::Document::Cell::Application')) {
+
+        E_SYNTAX->throw(
+            message     => 'typed parameter specification requires at least a type and a name part',
+            location    => $param->location,
+        ) if $param->node_count < 2;
+
+        my ($type, $name, @args) = $param->all_nodes;
+
+        E_SYNTAX->throw(
+            message     => 'name part of parameter specification is expected to be a bareword',
+            location    => $name->location,
+        ) unless $name->isa('Template::SX::Document::Bareword');
+
+        my %option;
+        while (my $option = shift @args) {
+
+            E_SYNTAX->throw(
+                message     => 'option name is expected to be a bareword',
+                location    => $option->location,
+            ) unless $option->isa('Template::SX::Document::Bareword');
+
+            if ($option->value eq 'is') {
+
+                my $trait = shift(@args) or E_SYNTAX->throw(
+                    message     => 'expected trait name after is specification',
+                    location    => $option->location,
+                );
+
+                E_SYNTAX->throw(
+                    message     => 'expected trait name specification to be a bareword',
+                    location    => $trait->location,
+                ) unless $trait->isa('Template::SX::Document::Bareword');
+
+                $option{is}{ $trait->value }++;
+            }
+            else {
+
+                E_SYNTAX->throw(
+                    message     => 'expected another value after ' . $option->value . ' option name',
+                    location    => $option->location,
+                ) unless @args;
+
+                $option{ $option->value } = shift(@args)->compile($inf, SCOPE_FUNCTIONAL);
+            }
+        }
+
+        return [$name->value, { type => $type->compile($inf, SCOPE_FUNCTIONAL), options => \%option }, $param->location];
+    }
+    else {
+
+        E_SYNTAX->throw(
+            message     => 'parameter list must be barewords or (Type name) specifications',
+            location    => $param->location,
+        );
+    }
+}
 
 sub document_loader {
     my ($cache, $key, $libs) = @_;
@@ -57,32 +123,44 @@ sub apply_scalar {
     try {
 
         if (my $class = blessed $op) {
-            
-            E_PROTOTYPE->throw(
-                class       => E_APPLY,
-                attributes  => { message => "missing method argument for method call on $class instance" },
-            ) unless @args;
 
-            my $method = shift @args;
+            if ($op->isa('Moose::Meta::TypeConstraint')) {
+
+                E_PROTOTYPE->throw(
+                    class       => E_APPLY,
+                    attributes  => { message => 'creation of a parameterized type requires arguments' },
+                ) unless @args;
+
+                $result = $op->parameterize(@args);
+            }
+            else {
+            
+                E_PROTOTYPE->throw(
+                    class       => E_APPLY,
+                    attributes  => { message => "missing method argument for method call on $class instance" },
+                ) unless @args;
+
+                my $method = shift @args;
 
 #            $result = scalar $op->
 #            $result = scalar $op->$method(@args);
-            unless (ref $method eq 'CODE') {
-                my $found_method = $op->can($method)
-                    or E_PROTOTYPE->throw(
-                        class       => E_APPLY,
-                        attributes  => { 
-                            message => sprintf(
-                                q(unable to find a method named '%s' on instance of '%s'),
-                                $method,
-                                blessed($op),
-                            ),
-                        },
-                    );
-                $method = $found_method;
-            }
+                unless (ref $method eq 'CODE') {
+                    my $found_method = $op->can($method)
+                        or E_PROTOTYPE->throw(
+                            class       => E_APPLY,
+                            attributes  => { 
+                                message => sprintf(
+                                    q(unable to find a method named '%s' on instance of '%s'),
+                                    $method,
+                                    blessed($op),
+                                ),
+                            },
+                        );
+                    $method = $found_method;
+                }
 
-            $result = $to_list ? [$shadow_call->($method, $op, @args)] : scalar($shadow_call->($method, $op, @args));
+                $result = $to_list ? [$shadow_call->($method, $op, @args)] : scalar($shadow_call->($method, $op, @args));
+            }
         }
         elsif (ref $op eq 'CODE') {
 

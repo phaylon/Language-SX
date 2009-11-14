@@ -24,9 +24,13 @@ my @constants = (
     ['bar:',    'bar',      'keyword with postfix double-colon'],
     [':x-y-z',  'x_y_z',    'dashes in keywords'],
     [':x23',    'x23',      'numbers in keywords'],
+
+    ['`x::y',   bareword('x::y'),   'bareword with colons'],
 );
 
-is_result @$_ 
-    for @constants;
+with_libs(sub {
+    is_result @$_ 
+        for @constants;
+}, 'Quoting');
 
 done_testing;

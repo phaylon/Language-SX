@@ -9,13 +9,15 @@ class Template::SX::Library::ScopeHandling extends Template::SX::Library {
     use TryCatch;
     use Sub::Name;
     use Sub::Call::Tail;
+    use List::AllUtils              qw( all );
     use Scalar::Util                qw( blessed );
     use Data::Dump                  qw( pp );
     use Template::SX::Constants     qw( :all );
     use Template::SX::Types         qw( :all );
+    use Template::SX::Util          qw( :all );
     use MooseX::Types::Structured   qw( :all );
     Class::MOP::load_class($_)
-        for E_SYNTAX, E_RESERVED, E_PROTOTYPE;
+        for E_SYNTAX, E_RESERVED, E_PROTOTYPE, E_TYPE;
 
     class_has '+function_map';
     class_has '+syntax_map';
@@ -610,15 +612,95 @@ class Template::SX::Library::ScopeHandling extends Template::SX::Library {
 
 #    method make_lambda_generator () {
 
+    method make_lambda_parameter_setter ($arg, Bool :$as_list) {
+
+        ref($arg) ? do {
+            my ($name, $args, $loc) = @$arg;
+
+            my $opt    = $args->{options} || {};
+            my $type   = $args->{type};
+            my $where  = $opt->{where};
+            my $traits = $opt->{is};
+
+            if (my @unknown = grep { $_ ne 'is' and $_ ne 'where' } keys %$opt) {
+
+                E_SYNTAX->throw(
+                    message     => "unknown parameter option names for $name parameter: @unknown",
+                    location    => $loc,
+                );
+            }
+
+            my $test_where = defined($where) && sub {
+                my $env = shift;
+                my $val = shift;
+
+                ref(my $test = $where->($env)) eq 'CODE' or E_TYPE->throw(
+                    message     => "where clause argument for parameter $name must evaluated to code reference",
+                    location    => $loc,
+                );
+
+                ($as_list ? (all { $test->($_) } @$val) : $test->($val)) or E_PROTOTYPE->throw(
+                    class       => E_PARAMETER,
+                    attributes  => { message => "value for parameter $name did not pass the custom value constraint" },
+                );
+            };
+
+            my $is_coerced = $traits->{coerced};
+
+            if (my @unknown = grep { $_ ne 'coerced' } keys %{ $traits || {} }) {
+
+                E_SYNTAX->throw(
+                    message     => "unknown parameter trait names for $name parameter: @unknown",
+                    location    => $loc,
+                );
+            }
+
+            my $test_type = sub {
+                my ($env, $val) = @_;
+                my $test = $type->($env);
+
+                blessed($test) and $test->isa('Moose::Meta::TypeConstraint') or E_TYPE->throw(
+                    message     => "the type constraint specification for parameter $name does not evaluate to a type object",
+                    location    => $loc,
+                );
+
+                $val = ($as_list ? [map { $test->coerce($_) } @$val] : $test->coerce($val))
+                    if $is_coerced;
+
+                ($as_list ? (all { $test->check($_) } @$val) : $test->check($val)) or E_PROTOTYPE->throw(
+                    class       => E_PARAMETER,
+                    attributes  => { message => "value for parameter $name did not pass the $test type constraint" },
+                );
+
+                return $val;
+            };
+
+            sub {
+                my ($env, $val) = @_;
+                $val = $test_type->($env, $val);
+                $test_where->($env, $val) if $test_where;
+                $env->{vars}{ $name } = $val;
+            };
+        }
+        : 
+        sub { 
+
+            $_[0]->{vars}{ $arg } = $_[1];
+        };
+    }
+
     method make_lambda_generator (
         Bool            :$has_max,
         Bool            :$has_min,
         CodeRef         :$sequence,
         Int             :$max?,
         Int             :$min?,
-        ArrayRef[Str]   :$positionals,
+        ArrayRef        :$positionals,
         Str             :$rest_var?
     ) {
+
+        my @setters  = map { $self->make_lambda_parameter_setter($_) } @$positionals;
+        my $set_rest = $rest_var && $self->make_lambda_parameter_setter($rest_var, as_list => 1);
 
         return sub {
             my $env = shift;
@@ -635,20 +717,22 @@ class Template::SX::Library::ScopeHandling extends Template::SX::Library {
                     ) },
                 ) if ( $has_min and $min > @_ )
                   or ( $has_max and $max < @_ );
-                # FIXME throw parameter prototype exceptions
-#                die "not enough arguments"  if $has_min and $min > @_;
-#                die "too many arguments"    if $has_max and $max < @_;
 
-                my %vars;
-                $vars{ $_ } = shift
-                    for @$positionals;
+                my $new_env = { vars => {}, parent => $env };
+                $_->($new_env, shift(@_))
+                    for @setters;
+                $set_rest->($new_env, [@_])
+                    if $set_rest;
 
-                $vars{ $rest_var } = [@_]
-                    if $rest_var;
+#                my %vars;
+#                $vars{ $_ } = shift
+#                    for @$positionals;
 
-                my $new_env = { vars => \%vars, parent => $env };
+#                $vars{ $rest_var } = [@_]
+#                    if $rest_var;
+
+#                my $new_env = { vars => \%vars, parent => $env };
                 tail $new_env->$sequence;
-#                return $sequence->({ vars => \%vars, parent => $env });
             };
         };
     }
@@ -671,12 +755,12 @@ class Template::SX::Library::ScopeHandling extends Template::SX::Library {
             my $seen_dot;
             for my $node (@nodes) {
 
-                E_SYNTAX->throw(
-                    message     => 'lambda parameter list can only contain barewords',
-                    location    => $node->location,
-                ) unless $node->isa('Template::SX::Document::Bareword');
+#                E_SYNTAX->throw(
+#                    message     => 'lambda parameter list can only contain barewords',
+#                    location    => $node->location,
+#                ) unless $node->isa('Template::SX::Document::Bareword');
 
-                if ($node->is_dot) {
+                if ($node->isa('Template::SX::Document::Bareword') and $node->is_dot) {
 
                     E_SYNTAX->throw(
                         message     => 'multiple dots are illegal in lambda parameter list',
@@ -693,34 +777,59 @@ class Template::SX::Library::ScopeHandling extends Template::SX::Library {
 
             PARAM: while (my $param = shift @nodes) {
                 
-                if ($param->value eq '.') {
+                if ($param->isa('Template::SX::Document::Bareword') and $param->value eq '.') {
 
                     E_SYNTAX->throw(
                         message     => 'dot in lambda parameter list must be followed by one rest variable identifier',
                         location    => (@nodes < 1 ? $param->location : $nodes[1]->location),
                     ) unless @nodes == 1;
 
-                    $rest = shift @nodes;
+                    $rest = deparse_parameter_spec $inf, shift @nodes;
                     last PARAM;
                 }
 
-                push @positional, $param;
+                push @positional, deparse_parameter_spec $inf, $param;
             }
 
+            my $flatten_param = sub {
+                my $param = shift;
+                return pp($param) unless ref $param;
+                return sprintf(
+                    '[%s]',
+                    join(
+                        ', ',
+                        pp($param->[0]),
+                        sprintf(
+                            '+{ type => %s, options => %s }',
+                            $param->[1]{type},
+                            sprintf(
+                                '+{ is => %s, %s }',
+                                pp($param->[1]{options}{is}),
+                                join ', ', 
+                                map  { sprintf('%s => %s', pp($_), $param->[1]{options}{ $_ }) }
+                                grep { $_ ne 'is' }
+                                keys %{ $param->[1]{options} || {} }
+                            ),
+                        ),
+                        pp($param->[2]),
+                    ),
+                );
+            };
+
             return +{
-              ( $rest ? (rest_var => pp($rest->value)) : () ),
+              ( $rest ? (rest_var => $flatten_param->($rest)) : () ),
                 has_min     => 1,
                 has_max     => ($rest ? 0 : 1),
                 min         => scalar(@positional),
                 max         => scalar(@positional),
                 _names      => [
-                    ($rest ? $rest->value : ()),
-                    map { $_->value } @positional,
+                    ($rest ? (ref($rest) ? $rest->[0] : $rest) : ()),
+                    map { ref() ? $_->[0] : $_ } @positional,
                 ],
                 positionals => sprintf(
                     '[%s]', join(
                         ', ',
-                        map { pp($_->value) } @positional
+                        map { $flatten_param->($_) } @positional
                     ),
                 ),
             };

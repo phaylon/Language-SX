@@ -268,14 +268,15 @@ class Template::SX::Reader::Stream {
             { } ( ) [ ]
             ` " ' 
             @ % 
-            ; :
+            ; 
         /, ',', '#');
 
         my $rx_join = sub { join ' ', map("(?! $_ )", '\s', map("\Q$_\E", @_)) };
 
         my $rx_na   = $rx_join->(@not_allowed);
         my $rx_beg  = $rx_join->(@not_allowed, 0..9);
-        my $rx      = qr/ 
+        my $rx      = qr/
+            (?! : )
             (?:
               (?:
                 (?: $rx_beg . ) 
@@ -284,6 +285,7 @@ class Template::SX::Reader::Stream {
                 |
               \#
             )
+            (?<! : )
         /x;
 
         my $rx_old = qr/

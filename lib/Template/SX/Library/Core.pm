@@ -13,5 +13,6 @@ class Template::SX::Library::Core extends Template::SX::Library::Group {
         Template::SX::Library::Operators
         Template::SX::Library::Quoting
         Template::SX::Library::ScopeHandling
+        Template::SX::Library::Types
     );
 }

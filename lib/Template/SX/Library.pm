@@ -135,15 +135,17 @@ class Template::SX::Library {
     my %TypeCheck = (
         list        => sub { ref $_[0] eq 'ARRAY' },
         hash        => sub { ref $_[0] eq 'HASH' },
-        object      => sub { blessed $_[0] },
+        object      => sub { blessed($_[0]) and not $_[0]->isa('Moose::Meta::TypeConstraint') },
+        type        => sub { blessed($_[0]) and $_[0]->isa('Moose::Meta::TypeConstraint') },
         lambda      => sub { ref $_[0] eq 'CODE' },
         regex       => sub { ref $_[0] eq 'Regexp' },
         word        => sub { blessed($_[0]) and $_[0]->isa('Template::SX::Document::Bareword') },
         any         => sub { 1 },
-        applicant   => sub { blessed($_[0]) or ref($_[0]) eq 'CODE' },
+        applicant   => sub { (blessed($_[0])) or ref($_[0]) eq 'CODE' },
         compound    => sub { ref($_[0]) eq 'ARRAY' or ref($_[0]) eq 'HASH' },
         string      => sub { defined($_[0]) and not ref($_[0]) },
     );
+    $TypeCheck{enum} = sub { blessed($_[0]) and $_[0]->isa('Moose::Meta::TypeConstraint::Enum') };
 
     method wrap_function (ClassName $class: Str $name, HashRef $args, CodeRef $body) {
         my $min = $args->{min} || 0;

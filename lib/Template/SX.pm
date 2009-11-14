@@ -143,3 +143,23 @@ class Template::SX {
         );
     }
 }
+
+__END__
+
+=head1 NAME
+
+=head1 SYNOPSIS
+
+=head1 DESCRIPTION
+
+=head2 A Summary
+
+=head2 Why?
+
+=head2 Libraries
+
+=head2 Modules
+
+=head1 SEE ALSO
+
+=cut

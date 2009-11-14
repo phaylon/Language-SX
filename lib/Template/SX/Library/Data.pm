@@ -12,7 +12,9 @@ class Template::SX::Library::Data extends Template::SX::Library::Group {
         Template::SX::Library::Data::Hashes
         Template::SX::Library::Data::Lists
         Template::SX::Library::Data::Numbers
+        Template::SX::Library::Data::Objects
         Template::SX::Library::Data::Pairs
+        Template::SX::Library::Data::Regex
         Template::SX::Library::Data::Strings
     );
 }

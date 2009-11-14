@@ -18,10 +18,28 @@ class Template::SX::Library::Data::Objects extends Template::SX::Library {
 
     CLASS->add_functions(
         'object?' => CLASS->wrap_function('object', { min => 1 }, sub {
-            return scalar( grep { not blessed $_ } @_ ) ? undef : 1;
+            return scalar( grep { not(blessed($_)) or $_->isa('Moose::Meta::TypeConstraint') } @_ ) ? undef : 1;
         }),
         'class-of' => CLASS->wrap_function('class-of', { min => 1, max => 1, types => [qw( object )] }, sub {
             return blessed shift;
+        }),
+        'is-a?' => CLASS->wrap_function('is-a?', { min => 2, max => 2 }, sub {
+            my ($item, $class) = @_;
+
+            return undef 
+                unless ( blessed($item) and not $item->isa('Moose::Meta::TypeConstraint') )
+                    or ( defined($item) and not ref($item) );
+
+            return $item->isa($class) ? 1 : undef;
+        }),
+        'does?' => CLASS->wrap_function('does?', { min => 2, max => 2 }, sub {
+            my ($item, $role) = @_;
+
+            return undef 
+                unless ( blessed($item) and not $item->isa('Moose::Meta::TypeConstraint') )
+                    or ( defined($item) and not ref($item) );
+
+            return $item->DOES($role) ? 1 : undef;
         }),
     );
 

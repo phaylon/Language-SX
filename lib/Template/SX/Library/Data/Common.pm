@@ -233,3 +233,16 @@ class Template::SX::Library::Data::Common extends Template::SX::Library {
     CLASS->add_functions(at => CLASS->_build_deep_getter);
 }
 
+__END__
+
+=head1 NAME
+
+=head1 SYNOPSIS
+
+=head1 DESCRIPTION
+
+=head1 PROVIDED SYNTAX ELEMENTS
+
+=head1 PROVIDED FUNCTIONS
+
+=head1 PROVIDED SETTERS

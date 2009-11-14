@@ -5,12 +5,14 @@ class Template::SX::Document
 
     with 'MooseX::Traits';
 
+    use TryCatch;
     use Carp                        qw( croak );
     use Template::SX::Constants     qw( :all );
     use Template::SX::Types         qw( :all );
     use MooseX::Types::Moose        qw( ArrayRef HashRef Object Bool Str CodeRef );
     use MooseX::Types::Path::Class  qw( Dir File );
     use Path::Class                 qw( dir file );
+    use Data::Dump                  qw( pp );
 
     BEGIN {
         if ($Template::SX::TRACK_INSTANCES) {
@@ -127,17 +129,18 @@ class Template::SX::Document
     }
 
     method load () {
+        my $code;
 
         local $Template::SX::MODULE_META = $self->_module_meta;
         my $DOC_LOADER = $self->document_loader;
-        my $code = eval sprintf 'package Template::SX::VOID; %s', $self->compiled_body;
 
-        if ($@) {
+        $code = eval sprintf 'package Template::SX::VOID; %s', $self->compiled_body;
 
-            # FIXME throw exception
-            die "Unable to load compiled code: $@\n";
+        if (my $e = $@) {
+            die $e;
         }
-        elsif (not is_CodeRef $code) {
+
+        if (not is_CodeRef $code) {
 
             # FIXME throw exception
             die "Invalid compilation result, not a code reference\n";
