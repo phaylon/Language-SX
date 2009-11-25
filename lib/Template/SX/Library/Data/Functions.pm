@@ -350,6 +350,11 @@ Template::SX::Library::Data::Functions - This library contains all functionality
     (add2 3)                        ; 5
     (list-with-end 3 4 5)           ; (3 4 5 23)
 
+    ; reverse currying
+    (define rcmp (rev-curry cmp))
+    (rcmp :a :b)                    ; 1
+    (cmp :a :b)                     ; -1
+
     ; test for a code reference
     (lambda? value)
 
@@ -472,6 +477,21 @@ Since C<curry> takes an applicant and not just a function, you can also curry ob
 
 This function does the same as L</curry>, but it will add its arguments at the end of the real
 function's argument list.
+
+=head2 rev-curry
+
+    (rev-curry <function>)
+
+This will take a function and return another function. When the returned function is called,
+the originally passed function will be called with the argument list in reverse. This is
+especially useful for sorting values. For example, you could order entries descending with 
+L<Template::SX::Library::Data::Strings/cmp> by saying:
+
+    (sort ls (lambda (a b) (cmp b a)))
+
+or by using this function:
+
+    (sort ls (rev-curry cmp))
 
 =head2 lambda?
 

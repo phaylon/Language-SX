@@ -316,6 +316,9 @@ Template::SX::Library::Data::Numbers - All numerical and math functionality
     ; number ranges
     (range 3 5)             ; => (3 4 5)
 
+    ; range from 0 to something
+    (up-to 3)               ; => (0 1 2 3)
+
     ; numeric equality
     (sort '(3 5 1) <=>)     ; => (1 3 5)
 
@@ -334,6 +337,11 @@ Template::SX::Library::Data::Numbers - All numerical and math functionality
     ; finding min and max values
     (max 3 4 1 9 4)         ; => 9
     (min 3 4 1 9 4)         ; => 1
+
+    ; absolutes, negatives and integers
+    (abs -23)               ; => 23
+    (neg 23)                ; => -23
+    (int 2.5)               ; => 2
 
     ; even or odd
     (even? 4)
@@ -402,11 +410,35 @@ This division function will take the first argument and divide it sequentially b
 arguments. It will return the C<value> itself if no division arguments were present, or C<0> if
 no arguments were passed at all.
 
+=head2 abs
+
+    (abs <number>)
+
+Returns the absolute of the number.
+
+=head2 neg
+
+    (neg <number>)
+
+This is the opposite of L</abs>.
+
+=head2 int
+
+    (int <number>)
+
+Turns the number into an integer.
+
 =head2 range
 
     (range <start> <end>)
 
 This function will return a list containing all numbers from (and including) C<start> up to C<end>.
+
+=head2 up-to
+
+    (up-to <end>)
+
+This is a shorter form of L</range> that implicitly starts at C<0>.
 
 =head2 <=>
 

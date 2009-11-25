@@ -350,6 +350,23 @@ C<condition> is I<false>, and the C<alternative> (or return undefined) otherwise
 
 Template::SX::Library::Branching - Branching and conditional functionality
 
+=head1 SYNOPSIS
+
+    ; multiple branching
+    (cond [(< n 0) "negative"]
+          [(> n 0) "positive"]
+          [#t      "zero])
+
+    ; positive binary branch
+    (if (even? foo)
+      "foo is even"
+      "foo is odd")
+
+    ; negative binary branch
+    (unless (even? foo)
+      "foo is odd"
+      "foo is even")
+
 =head1 INHERITANCE
 
 =over 2
@@ -451,6 +468,14 @@ C<consequence> will be evaluated and the resulting value returned. If the C<cond
 evaluated to a false value, it will either return an undefined value or the result of an
 evaluation of the C<alternative>, if one was specified.
 
+=head2 unless
+
+    (unless <condition> <consequence>)
+    (unless <condition> <consequence> <alternative>)
+
+Just like L</if> but the other way around. It will evaluate the C<consequence> if the
+C<condition> is I<false>, and the C<alternative> (or return undefined) otherwise.
+
 =head1 METHODS
 
 =head2 new
@@ -490,7 +515,8 @@ will be thrown away and the result of the C<consequence> will be returned.
     ->make_if_else_branch(
         CodeRef :$condition!,
         CodeRef :$consequence!,
-        CodeRef :$alternative
+        CodeRef :$alternative,
+        Bool :$test_false
     )
 
 =over
@@ -510,6 +536,8 @@ The condition callback to test for.
 =item * CodeRef C<:$consequence>
 
 The consequence callback if the test returned true.
+
+=item * Bool C<:$test_false> (optional)
 
 =back
 

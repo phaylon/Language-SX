@@ -251,6 +251,8 @@ Template::SX::Manual::Tags - Find L<Template::SX> documentation by tag
 
 =over
 
+=item * L<Template::SX::Library::Data::Functions/"rev-curry">
+
 =item * L<Template::SX::Library::Data::Lists/"sort">
 
 =item * L<Template::SX::Library::Data::Numbers/"E<lt>=E<gt>">
