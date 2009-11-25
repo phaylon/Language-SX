@@ -35,7 +35,7 @@ class Template::SX::Inflator::ModuleMeta {
         return( map { (keys %$_) } grep defined, values %{ $self->arguments } );
     }
 
-    method new_from_tree (ClassName $class: ArrayRef[Object] :$arguments) {
+    method new_from_tree (ClassName $class: ArrayRef[Object] :$arguments!) {
 
         my %attrs;
 
@@ -169,7 +169,7 @@ class Template::SX::Inflator::ModuleMeta {
         return \@libraries;
     }
 
-    method compile (Object $inf) {
+    method compile (Template::SX::Inflator $inf) {
 
         return join(';',
             $self->_compile_safety($inf),
@@ -214,3 +214,237 @@ class Template::SX::Inflator::ModuleMeta {
         }
     }
 }
+
+__END__
+
+=encoding utf-8
+
+=begin fusion
+
+@see_also Template::SX
+@see_also Template::SX::Inflator
+@license  Template::SX
+
+@class Template::SX::Inflator::ModuleMeta
+Contain and render module meta information.
+
+@method compile
+Compiles the meta information into inflator code.
+
+@method lexicals
+Returns a list of new lexicals introduced by this module's arguments.
+
+@method new_from_tree
+%param :$arguments Syntax arguments.
+Create a new C<ModuleMeta> out of a document tree.
+
+@attr arguments
+Map of required and optional arguments.
+
+@attr exports
+List of type export groups.
+
+@attr requires
+Required libraries.
+
+@DESCRIPTION
+This module contains and renders the module meta information required for argument
+validation, per-document library loading, and export declarations.
+
+=end fusion
+
+
+
+
+
+
+=head1 NAME
+
+Template::SX::Inflator::ModuleMeta - Contain and render module meta information.
+
+=head1 INHERITANCE
+
+=over 2
+
+=item *
+
+Template::SX::Inflator::ModuleMeta
+
+=over 2
+
+=item *
+
+L<Moose::Object>
+
+=back
+
+=back
+
+=head1 DESCRIPTION
+
+This module contains and renders the module meta information required for argument
+validation, per-document library loading, and export declarations.
+
+=head1 METHODS
+
+=head2 new
+
+Object constructor accepting the following parameters:
+
+=over
+
+=item * arguments (optional)
+
+Initial value for the L<arguments|/"arguments (optional)"> attribute.
+
+=item * exports (optional)
+
+Initial value for the L<exports|/"exports (optional)"> attribute.
+
+=item * requires (optional)
+
+Initial value for the L<requires|/"requires (optional)"> attribute.
+
+=back
+
+=head2 arguments
+
+Reader for the L<arguments|/"arguments (optional)"> attribute.
+
+=head2 compile
+
+    ->compile(Template::SX::Inflator $inf)
+
+=over
+
+=item * Positional Parameters:
+
+=over
+
+=item * L<Template::SX::Inflator> C<$inf>
+
+=back
+
+=back
+
+Compiles the meta information into inflator code.
+
+=head2 exports
+
+Reader for the L<exports|/"exports (optional)"> attribute.
+
+=head2 lexicals
+
+    ->lexicals()
+
+=over
+
+=back
+
+Returns a list of new lexicals introduced by this module's arguments.
+
+=head2 new_from_tree
+
+    ->new_from_tree(ClassName $class: ArrayRef[Object] :$arguments!)
+
+=over
+
+=item * Named Parameters:
+
+=over
+
+=item * ArrayRef[Object] C<:$arguments>
+
+Syntax arguments.
+
+=back
+
+=back
+
+Create a new C<ModuleMeta> out of a document tree.
+
+=head2 requires
+
+Reader for the L<requires|/"requires (optional)"> attribute.
+
+=head2 meta
+
+Returns the meta object for C<Template::SX::Inflator::ModuleMeta> as an instance of L<Class::MOP::Class::Immutable::Moose::Meta::Class>.
+
+=head1 ATTRIBUTES
+
+=head2 arguments (optional)
+
+=over
+
+=item * Type Constraint
+
+L<Dict|MooseX::Types::Structured/Dict>[optional,HashRef,required,HashRef]
+
+=item * Constructor Argument
+
+C<arguments>
+
+=item * Associated Methods
+
+L<arguments|/arguments>
+
+=back
+
+Map of required and optional arguments.
+
+=head2 exports (optional)
+
+=over
+
+=item * Type Constraint
+
+HashRef[ArrayRef[Str]]
+
+=item * Constructor Argument
+
+C<exports>
+
+=item * Associated Methods
+
+L<exports|/exports>
+
+=back
+
+List of type export groups.
+
+=head2 requires (optional)
+
+=over
+
+=item * Type Constraint
+
+L<LibraryList|Template::SX::Types/LibraryList>
+
+=item * Constructor Argument
+
+C<requires>
+
+=item * Associated Methods
+
+L<requires|/requires>
+
+=back
+
+Required libraries.
+
+=head1 SEE ALSO
+
+=over
+
+=item * L<Template::SX>
+
+=item * L<Template::SX::Inflator>
+
+=back
+
+=head1 LICENSE AND COPYRIGHT
+
+See L<Template::SX> for information about license and copyright.
+
+=cut

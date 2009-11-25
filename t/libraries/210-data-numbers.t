@@ -92,6 +92,18 @@ my @should_work = (
     ['(range -1 1)',    [-1..1],    'range with negative to positive arguments'],
     ['(range 3 2)',     [],         'empty range'],
     ['(range 3 3)',     [3],        'single step range'],
+
+    ['(up-to 3)',       [0..3],     'up-to range'],
+    ['(up-to 0)',       [0],        'up-to zero'],
+    ['(up-to -3)',      [],         'up-to negative'],
+
+    ['(abs 23)',        23,         'abs with positive'],
+    ['(abs -23)',       23,         'abs with negative'],
+
+    ['(neg 23)',        -23,        'neg with positive'],
+    ['(neg -23)',       -23,        'neg with negative'],
+
+    ['(int 2.5)',       2,          'int'],
 );
 
 my @should_fail = (
@@ -123,6 +135,18 @@ my @should_fail = (
     ['(range)',         [E_PARAMETER,   qr/not enough/],    'range without arguments'],
     ['(range 1)',       [E_PARAMETER,   qr/not enough/],    'range with single argument'],
     ['(range 1 2 3)',   [E_PARAMETER,   qr/too many/],      'range with more than two arguments'],
+
+    ['(up-to)',         [E_PARAMETER,   qr/not enough/],    'up-to without arguments'],
+    ['(up-to 0 3)',     [E_PARAMETER,   qr/too many/],      'up-to with more than one argument'],
+
+    ['(abs)',           [E_PARAMETER,   qr/not enough/],    'abs without arguments'],
+    ['(abs 2 3)',       [E_PARAMETER,   qr/too many/],      'abs with more than one argument'],
+
+    ['(neg)',           [E_PARAMETER,   qr/not enough/],    'neg without arguments'],
+    ['(neg 2 3)',       [E_PARAMETER,   qr/too many/],      'neg with more than one argument'],
+
+    ['(int)',           [E_PARAMETER,   qr/not enough/],    'int without arguments'],
+    ['(int 2 3)',       [E_PARAMETER,   qr/too many/],      'int with more than one argument'],
 );
 
 with_libs(sub {

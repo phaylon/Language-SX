@@ -22,7 +22,6 @@ use Template::SX::Constants qw(
     SCOPE_FUNCTIONAL
 );
 
-use namespace::clean -except => 'import';
 
 subtype Offset, 
      as Int, 
@@ -43,6 +42,7 @@ class_type $_ for map "Template::SX::$_", qw(
     Exception::Syntax
     Exception::Syntax::EndOfStream
     Library
+    Inflator
 );
 
 role_type $_ for map "Template::SX::$_", qw(
@@ -97,3 +97,160 @@ coerce LibraryList,
         via { [map { ref() ? $_ : $CoerceLib->($_) } @$_] };
 
 1;
+
+__END__
+
+=encoding utf-8
+
+=begin fusion
+
+@see_also Template::SX
+@see_also MooseX::Types
+@see_also Moose::Manual::Types
+@license  Template::SX
+
+@typelib Template::SX::Types
+Types required for L<Template::SX>
+
+@type Offset
+A non-negative integer.
+
+@type LibraryList
+A list of library objects.
+
+@type PairList
+A list of pairs
+
+@type Token
+An array reference containing the type, value and location identifying a token.
+
+@type Scope
+Compilation scope.
+
+@type QuoteState
+Type of quotation environment. C<quasi> allows interpolation, C<full> doesn't.
+
+@type SourceType
+Type of source that is read.
+
+@type Location
+Record containing a position and context in the source.
+
+=end fusion
+
+
+
+
+
+
+=head1 NAME
+
+Template::SX::Types - Types required for L<Template::SX>
+
+=head1 TYPES
+
+=head2 Offset
+
+Subtype of Int
+
+A non-negative integer.
+
+=head2 LibraryList
+
+Subtype of ArrayRef[Object]
+
+Available coercions:
+
+=over
+
+=item * ArrayRef[Str|L<Template::SX::Library>]
+
+=back
+
+A list of library objects.
+
+=head2 PairList
+
+Subtype of ArrayRef
+
+A list of pairs
+
+=head2 Token
+
+Subtype of L<Tuple|MooseX::Types::Structured/Tuple>[Str,Any,L<Location|Template::SX::Types/Location>]
+
+An array reference containing the type, value and location identifying a token.
+
+=head2 Scope
+
+Subtype of Str
+
+Valid values:
+
+=over
+
+=item * C<functional>
+
+=item * C<structural>
+
+=back
+
+Compilation scope.
+
+=head2 QuoteState
+
+Subtype of Str
+
+Valid values:
+
+=over
+
+=item * C<quasi>
+
+=item * C<full>
+
+=back
+
+Type of quotation environment. C<quasi> allows interpolation, C<full> doesn't.
+
+=head2 SourceType
+
+Subtype of Str
+
+Valid values:
+
+=over
+
+=item * C<string>
+
+=item * C<file>
+
+=item * C<handle>
+
+=back
+
+Type of source that is read.
+
+=head2 Location
+
+Subtype of L<Dict|MooseX::Types::Structured/Dict>[source,Str,line,Int,char,Int,context,Str,offset,Int]
+
+Record containing a position and context in the source.
+
+=head1 SEE ALSO
+
+=over
+
+=item * L<Template::SX>
+
+=item * L<MooseX::Types>
+
+=item * L<Moose::Manual::Types>
+
+=back
+
+=head1 LICENSE AND COPYRIGHT
+
+See L<Template::SX> for information about license and copyright.
+
+=cut

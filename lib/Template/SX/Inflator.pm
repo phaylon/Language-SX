@@ -75,12 +75,24 @@ class Template::SX::Inflator {
         isa         => Object,
     );
 
+    has _lexical_collector => (
+        is          => 'ro',
+        isa         => Object,
+    );
+
+    has _bound_lexical_map => (
+        is          => 'ro',
+        isa         => HashRef,
+        required    => 1,
+        default     => sub { {} },
+    );
+
     method create_value_scope (@args) {
         require Template::SX::Inflator::ValueScope;
         return Template::SX::Inflator::ValueScope->new(@args);
     }
 
-    method build_path_finder {
+    method build_path_finder () {
 
         return sub {
             my $env = shift;
@@ -105,7 +117,35 @@ class Template::SX::Inflator {
         return $self->_lexical_map->{ $name };
     }
 
-    method with_new_escape_scope {
+    method lexical_known_in_current_binding (Str $name) {
+        return $self->_bound_lexical_map->{ $name };
+    }
+
+    method with_new_lexical_collector () {
+
+        require Template::SX::Inflator::LexicalCollector;
+        return $self->meta->clone_object($self,
+            _bound_lexical_map  => {},
+            _lexical_collector  => Template::SX::Inflator::LexicalCollector->new(
+              ( $self->_lexical_collector ? (parent => $self->_lexical_collector) : () )
+            ),
+        );
+    }
+
+    method collected_lexicals () {
+
+        return $self->_lexical_collector->all_lexicals;
+    }
+
+    method collect_lexical (Str $lex) {
+
+        return $lex unless $self->_lexical_collector;
+        return $lex if $self->lexical_known_in_current_binding($lex);
+        $self->_lexical_collector->add_lexical($lex);
+        return $lex;
+    }
+
+    method with_new_escape_scope () {
 
         require Template::SX::Inflator::EscapeScope;
         return $self->meta->clone_object($self, 
@@ -151,7 +191,7 @@ class Template::SX::Inflator {
         return undef;
     };
 
-    method make_escape_scope_exit (Str :$type, ArrayRef[CodeRef] :$values) {
+    method make_escape_scope_exit (Str :$type!, ArrayRef[CodeRef] :$values!) {
 
         return subname ESCAPE_EXIT => sub {
             my $env    = shift;
@@ -171,11 +211,19 @@ class Template::SX::Inflator {
     }
 
     method with_lexicals (Str @lexicals) {
+        
+        my %fresh = map { ($_, 1) } @lexicals;
 
-        return $self->meta->clone_object($self, _lexical_map => {
-            %{ $self->_lexical_map },
-            map { ($_, 1) } @lexicals
-        });
+        return $self->meta->clone_object($self, 
+            _lexical_map => {
+                %{ $self->_lexical_map },
+                %fresh,
+            },
+            _bound_lexical_map => {
+                %{ $self->_bound_lexical_map },
+                %fresh,
+            },
+        );
     }
 
     method new_with_resolved_traits (ClassName $class: @args) {
@@ -284,7 +332,7 @@ class Template::SX::Inflator {
         return 1;
     }
 
-    method serialize {
+    method serialize () {
 
         return sprintf(
             '(do { require %s; %s->new(traits => %s, libraries => %s, document_loader => %s) })',
@@ -367,7 +415,7 @@ class Template::SX::Inflator {
         return $compiled;
     }
 
-    method make_root (CodeRef :$sequence) {
+    method make_root (CodeRef :$sequence!) {
 
         my $arg_spec = $Template::SX::MODULE_META->{arguments};
         my %required = $arg_spec ? %{ $arg_spec->{required} || {} } : ();
@@ -443,7 +491,7 @@ class Template::SX::Inflator {
         return @compiled;
     }
 
-    method render_call (Str :$method, HashRef[Str] | ArrayRef[Str] :$args, Str :$library?) {
+    method render_call (Str :$method!, HashRef[Str] | ArrayRef[Str] :$args!, Str :$library?) {
 
         return sprintf(
             '$inf->%s(%s)',
@@ -481,7 +529,7 @@ class Template::SX::Inflator {
         );
     }
 
-    method make_structure_builder (ArrayRef[CodeRef] :$values, CodeRef :$template) {
+    method make_structure_builder (ArrayRef[CodeRef] :$values!, CodeRef :$template!) {
 
         return subname STRUCTURE => sub {
             my $env = shift;
@@ -491,7 +539,7 @@ class Template::SX::Inflator {
         };
     }
 
-    method make_sequence (ArrayRef[CodeRef] :$elements) {
+    method make_sequence (ArrayRef[CodeRef] :$elements!) {
 
         return subname SEQUENCE => sub {
             my $env = shift;
@@ -513,7 +561,7 @@ class Template::SX::Inflator {
         };
     }
 
-    method make_list_builder (ArrayRef[CodeRef] :$items, :$env) {
+    method make_list_builder (ArrayRef[CodeRef] :$items!) {
 
         return subname LIST_BUILDER => sub { 
             my $env = shift;
@@ -521,7 +569,7 @@ class Template::SX::Inflator {
         };
     }
 
-    method make_hash_builder (ArrayRef[CodeRef] :$items) {
+    method make_hash_builder (ArrayRef[CodeRef] :$items!) {
 
         return subname HASH_BUILDER => sub {
             my $env = shift;
@@ -529,7 +577,7 @@ class Template::SX::Inflator {
         };
     }
 
-    method make_object_builder (Str :$class, HashRef :$arguments, Str :$cached_by?) {
+    method make_object_builder (Str :$class!, HashRef :$arguments!, Str :$cached_by?) {
         Class::MOP::load_class($class);
 
         # many runtime objects are ro and can be cached for better performance
@@ -543,7 +591,7 @@ class Template::SX::Inflator {
         }
     }
 
-    method make_concatenation (ArrayRef[CodeRef] :$elements) {
+    method make_concatenation (ArrayRef[CodeRef] :$elements!) {
 
         return subname CONCAT => sub {
             my $env = shift;
@@ -552,22 +600,22 @@ class Template::SX::Inflator {
         };
     }
 
-    method make_constant (Any :$value) {
+    method make_constant (Any :$value!) {
 
         return subname CONSTANT => sub { $value };
     }
 
-    method make_boolean_constant (Any :$value) {
+    method make_boolean_constant (Any :$value!) {
 
         return $self->make_constant(value => $value);
     }
 
-    method make_keyword_constant (Any :$value) {
+    method make_keyword_constant (Any :$value!) {
 
         return $self->make_constant(value => $value);
     }
 
-    method make_regex_constant (RegexpRef :$value) {
+    method make_regex_constant (RegexpRef :$value!) {
 
         return $self->make_constant(value => $value);
     }
@@ -581,7 +629,7 @@ class Template::SX::Inflator {
             '}';
     }
 
-    method make_application (CodeRef :$apply, ArrayRef[CodeRef] :$arguments, HashRef :$location, :$env) {
+    method make_application (CodeRef :$apply!, ArrayRef[CodeRef] :$arguments!, HashRef :$location!) {
 
         my $shadow_call = $self->_build_shadow_call($location);
 
@@ -610,7 +658,7 @@ class Template::SX::Inflator {
         };
     }
 
-    method make_getter (Str :$name, Location :$location) {
+    method make_getter (Str :$name!, Location :$location!) {
 
         my $lib_function = $self->find_library_function($name);
 
@@ -648,3 +696,1119 @@ class Template::SX::Inflator {
         };
     }
 }
+
+__END__
+
+=encoding utf-8
+
+=begin fusion
+
+@see_also Template::SX
+@see_also Template::SX::Document
+@license  Template::SX
+
+@class Template::SX::Inflator
+Compiling and inflating a document to a callback tree
+
+@method add_library
+Adds a library object.
+
+@method all_libraries
+Returns a list of all libraries.
+
+@method assure_unreserved_identifier
+%param $identifier The bareword that contains the identifier name.
+Throws an L<Template::SX::Exception::Reserved> if the identifier is reserved.
+
+@method build_document_loader
+Builder for callback to load further documents. Currently only returns L</document_loader>.
+
+@method build_path_filder
+Builder for callback to locate a path in the environment.
+
+@method call
+Will call C<$cb> with the inflator object in C<$_>.
+
+@method clone_with_additional_traits
+Creates a cloned object with the additional traits applied.
+
+@method compile_base
+%param $nodes Root nodes.
+Compiles code for the document root sequence.
+
+@method compile_sequence
+Compiles the C<$nodes> as a sequence that will return the last items value.
+
+@method create_value_scope
+%param @args Arguments for the L<Template::SX::Inflator::ValueScope> object.
+Creates a new value scope object for pre-evaluated values.
+
+@method find_library
+Takes a callback that should return true on the right library.
+
+@method find_library_function
+Tries to locate a function in the loaded libraries.
+
+@method find_library_setter
+Tries to locate a setter in the loaded libraries.
+
+@method find_library_syntax
+Tries to locate a syntax element in the loaded libraries.
+
+@method find_library_with_setter
+Returns the library that contains the setter.
+
+@method find_library_with_syntax
+Returns the library that contains the syntax element.
+
+@method known_lexical
+Test if a variable has been declared as a lexical during compile-time.
+
+@method library_by_name
+Runtime method to load a library object.
+
+@method make_application
+%param :$apply      The callback returning the applicant.
+%param :$arguments  List of callbacks returning the arguments.
+%param :$location   Location of the generated application.
+Generates a functional application callback.
+
+@method make_boolean_constant
+Builds a callback returning a constant boolean.
+
+@method make_concatenation
+%param :$elements Callbacks returning values to concatenate.
+Builds a callback returning a string of the values joined together without a separator.
+
+@method make_constant
+Universal constant callback builder.
+
+@method make_escape_scope
+Internal method.
+
+@method make_escape_scope_exit
+Internal method.
+
+@method make_getter
+%param :$location The location of the variable access.
+%param :$name     The name of the variable to get.
+Builds a callback to fetch a value from the environment.
+
+@method make_hash_builder
+%param :$items Even list of callbacks returning keys and values.
+Builds a hash reference builder callback.
+
+@method make_keyword_constant
+Builds a callback for constant keywords.
+
+@method make_object_builder
+%param :$arguments The constructor arguments.
+%param :$cached_by Name of the field in C<$arguments> that holds the cache key.
+%param :$class     The class to instantiate.
+Creates an (optionally cached) object creation callback.
+
+@method make_regex_constant
+Builds a callback for regular expression constants.
+
+@method make_root
+Builds a callback to wrap the root sequence with the necessary input logic.
+
+@method make_sequence
+Builds a callback that will evaluate all C<$elements> callbacks in turn and return
+the value of the last element.
+
+@method make_structure_builder
+%param :$template A code reference called with the values that go into the structure.
+%param :$values   Callbacks returning the values to put in the structural template.
+Builds a data structure by weaving the C<$values> into the C<$template>.
+
+@method map_libraries
+C<map> for the libraries.
+
+@method new_with_resolved_traits
+Internal method for runtime inflation.
+
+@method render_call
+%param :$args       Arguments for the method call. Either positional or named.
+%param :$library    Library name if C<$method> is a library method.
+%param :$method     Method name to call.
+Render a call to an inflator or library method.
+
+@method render_escape_wrap
+Internal method.
+
+@method render_sequence
+Renders code for a sequence iterator out of document items.
+
+@method resolve_module_meta
+Takes a list of nodes and returns an array reference of rest nodes plus an optional
+L<Template::SX::Inflator::ModuleMeta> object if a C<module> directive was encountered
+as first element.
+
+@methos serialize
+Renders runtime reinflation of the inflator object.
+
+@method with_lexicals
+Create a new inflator with additional known lexicals.
+
+@method with_new_escape_scope
+Internal method.
+
+@attr document_loader
+Callback to load a new document.
+
+@attr libraries
+List of loaded library objects.
+
+@DESCRIPTION
+This module handles the compilation and runtime inflation phase by providing a syntax tree with
+a way to render code that builds a corresponding runtime callback tree.
+
+=end fusion
+
+
+
+
+
+
+=head1 NAME
+
+Template::SX::Inflator - Compiling and inflating a document to a callback tree
+
+=head1 INHERITANCE
+
+=over 2
+
+=item *
+
+Template::SX::Inflator
+
+=over 2
+
+=item *
+
+L<Moose::Object>
+
+=back
+
+=back
+
+=head1 APPLIED ROLES
+
+=over
+
+=item * L<MooseX::Traits>
+
+=back
+
+=head1 DESCRIPTION
+
+This module handles the compilation and runtime inflation phase by providing a syntax tree with
+a way to render code that builds a corresponding runtime callback tree.
+
+=head1 METHODS
+
+=head2 new
+
+Object constructor accepting the following parameters:
+
+=over
+
+=item * document_loader (B<required>)
+
+Initial value for the L<document_loader|/"document_loader (required)"> attribute.
+
+=item * libraries (optional)
+
+Initial value for the L<libraries|/"libraries (required)"> attribute.
+
+=back
+
+=head2 add_library
+
+Delegation to a generated L<unshift|Moose::Meta::Attribute::Native::MethodProvider::Array/unshift> method for the L<libraries|/libraries (required)> attribute.
+
+Adds a library object.
+
+=head2 all_libraries
+
+Delegation to a generated L<elements|Moose::Meta::Attribute::Native::MethodProvider::Array/elements> method for the L<libraries|/libraries (required)> attribute.
+
+Returns a list of all libraries.
+
+=head2 assure_unreserved_identifier
+
+    ->assure_unreserved_identifier(
+        Template::SX::Document::Bareword $identifier
+    )
+
+=over
+
+=item * Positional Parameters:
+
+=over
+
+=item * L<Template::SX::Document::Bareword> C<$identifier>
+
+The bareword that contains the identifier name.
+
+=back
+
+=back
+
+Throws an L<Template::SX::Exception::Reserved> if the identifier is reserved.
+
+=head2 build_document_loader
+
+    ->build_document_loader()
+
+=over
+
+=back
+
+Builder for callback to load further documents. Currently only returns L</document_loader>.
+
+=head2 build_path_finder
+
+    ->build_path_finder()
+
+=over
+
+=back
+
+=head2 call
+
+    ->call(CodeRef $cb)
+
+=over
+
+=item * Positional Parameters:
+
+=over
+
+=item * CodeRef C<$cb>
+
+=back
+
+=back
+
+Will call C<$cb> with the inflator object in C<$_>.
+
+=head2 clone_with_additional_traits
+
+    ->clone_with_additional_traits(ArrayRef[Str] $traits)
+
+=over
+
+=item * Positional Parameters:
+
+=over
+
+=item * ArrayRef[Str] C<$traits>
+
+=back
+
+=back
+
+Creates a cloned object with the additional traits applied.
+
+=head2 collect_lexical
+
+    ->collect_lexical(Str $lex)
+
+=over
+
+=item * Positional Parameters:
+
+=over
+
+=item * Str C<$lex>
+
+=back
+
+=back
+
+=head2 collected_lexicals
+
+    ->collected_lexicals()
+
+=over
+
+=back
+
+=head2 compile_base
+
+    ->compile_base(ArrayRef[Object] $nodes, Scope $start_scope)
+
+=over
+
+=item * Positional Parameters:
+
+=over
+
+=item * ArrayRef[Object] C<$nodes>
+
+Root nodes.
+
+=item * L<Scope|Template::SX::Types/Scope> C<$start_scope>
+
+=back
+
+=back
+
+Compiles code for the document root sequence.
+
+=head2 compile_sequence
+
+    ->compile_sequence(ArrayRef[Object] $nodes, Scope $scope?)
+
+=over
+
+=item * Positional Parameters:
+
+=over
+
+=item * ArrayRef[Object] C<$nodes>
+
+Root nodes.
+
+=item * L<Scope|Template::SX::Types/Scope> C<$scope> (optional)
+
+=back
+
+=back
+
+Compiles the C<$nodes> as a sequence that will return the last items value.
+
+=head2 create_value_scope
+
+    ->create_value_scope(@args)
+
+=over
+
+=item * Positional Parameters:
+
+=over
+
+=item * C<@args>
+
+Arguments for the L<Template::SX::Inflator::ValueScope> object.
+
+=back
+
+=back
+
+Creates a new value scope object for pre-evaluated values.
+
+=head2 document_loader
+
+Reader for the L<document_loader|/"document_loader (required)"> attribute.
+
+=head2 find_library
+
+Delegation to a generated L<first|Moose::Meta::Attribute::Native::MethodProvider::Array/first> method for the L<libraries|/libraries (required)> attribute.
+
+Takes a callback that should return true on the right library.
+
+=head2 find_library_function
+
+    ->find_library_function(Str $name)
+
+=over
+
+=item * Positional Parameters:
+
+=over
+
+=item * Str C<$name>
+
+=back
+
+=back
+
+Tries to locate a function in the loaded libraries.
+
+=head2 find_library_setter
+
+    ->find_library_setter(Str $name)
+
+=over
+
+=item * Positional Parameters:
+
+=over
+
+=item * Str C<$name>
+
+=back
+
+=back
+
+Tries to locate a setter in the loaded libraries.
+
+=head2 find_library_syntax
+
+    ->find_library_syntax(Str $name)
+
+=over
+
+=item * Positional Parameters:
+
+=over
+
+=item * Str C<$name>
+
+=back
+
+=back
+
+Tries to locate a syntax element in the loaded libraries.
+
+=head2 find_library_with_setter
+
+    ->find_library_with_setter(Str $name)
+
+=over
+
+=item * Positional Parameters:
+
+=over
+
+=item * Str C<$name>
+
+=back
+
+=back
+
+Returns the library that contains the setter.
+
+=head2 find_library_with_syntax
+
+    ->find_library_with_syntax(Str $name)
+
+=over
+
+=item * Positional Parameters:
+
+=over
+
+=item * Str C<$name>
+
+=back
+
+=back
+
+Returns the library that contains the syntax element.
+
+=head2 known_lexical
+
+    ->known_lexical(Str $name)
+
+=over
+
+=item * Positional Parameters:
+
+=over
+
+=item * Str C<$name>
+
+=back
+
+=back
+
+Test if a variable has been declared as a lexical during compile-time.
+
+=head2 lexical_known_in_current_binding
+
+    ->lexical_known_in_current_binding(Str $name)
+
+=over
+
+=item * Positional Parameters:
+
+=over
+
+=item * Str C<$name>
+
+=back
+
+=back
+
+=head2 library_by_name
+
+    ->library_by_name(Str $libname)
+
+=over
+
+=item * Positional Parameters:
+
+=over
+
+=item * Str C<$libname>
+
+=back
+
+=back
+
+Runtime method to load a library object.
+
+=head2 make_application
+
+    ->make_application(
+        CodeRef :$apply!,
+        ArrayRef[
+            CodeRef
+        ] :$arguments!,
+        HashRef :$location!
+    )
+
+=over
+
+=item * Named Parameters:
+
+=over
+
+=item * CodeRef C<:$apply>
+
+The callback returning the applicant.
+
+=item * ArrayRef[CodeRef] C<:$arguments>
+
+The constructor arguments.
+
+=item * HashRef C<:$location>
+
+The location of the variable access.
+
+=back
+
+=back
+
+Generates a functional application callback.
+
+=head2 make_boolean_constant
+
+    ->make_boolean_constant(Any :$value!)
+
+=over
+
+=item * Named Parameters:
+
+=over
+
+=item * Any C<:$value>
+
+=back
+
+=back
+
+Builds a callback returning a constant boolean.
+
+=head2 make_concatenation
+
+    ->make_concatenation(ArrayRef[CodeRef] :$elements!)
+
+=over
+
+=item * Named Parameters:
+
+=over
+
+=item * ArrayRef[CodeRef] C<:$elements>
+
+Callbacks returning values to concatenate.
+
+=back
+
+=back
+
+Builds a callback returning a string of the values joined together without a separator.
+
+=head2 make_constant
+
+    ->make_constant(Any :$value!)
+
+=over
+
+=item * Named Parameters:
+
+=over
+
+=item * Any C<:$value>
+
+=back
+
+=back
+
+Universal constant callback builder.
+
+=head2 make_escape_scope
+
+    ->make_escape_scope(CodeRef :$scope!)
+
+=over
+
+=item * Named Parameters:
+
+=over
+
+=item * CodeRef C<:$scope>
+
+=back
+
+=back
+
+Internal method.
+
+=head2 make_escape_scope_exit
+
+    ->make_escape_scope_exit(
+        Str :$type!,
+        ArrayRef[
+            CodeRef
+        ] :$values!
+    )
+
+=over
+
+=item * Named Parameters:
+
+=over
+
+=item * Str C<:$type>
+
+=item * ArrayRef[CodeRef] C<:$values>
+
+Callbacks returning the values to put in the structural template.
+
+=back
+
+=back
+
+Internal method.
+
+=head2 make_getter
+
+    ->make_getter(Str :$name!, Location :$location!)
+
+=over
+
+=item * Named Parameters:
+
+=over
+
+=item * L<Location|Template::SX::Types/Location> C<:$location>
+
+The location of the variable access.
+
+=item * Str C<:$name>
+
+The name of the variable to get.
+
+=back
+
+=back
+
+Builds a callback to fetch a value from the environment.
+
+=head2 make_hash_builder
+
+    ->make_hash_builder(ArrayRef[CodeRef] :$items!)
+
+=over
+
+=item * Named Parameters:
+
+=over
+
+=item * ArrayRef[CodeRef] C<:$items>
+
+Even list of callbacks returning keys and values.
+
+=back
+
+=back
+
+Builds a hash reference builder callback.
+
+=head2 make_keyword_constant
+
+    ->make_keyword_constant(Any :$value!)
+
+=over
+
+=item * Named Parameters:
+
+=over
+
+=item * Any C<:$value>
+
+=back
+
+=back
+
+Builds a callback for constant keywords.
+
+=head2 make_list_builder
+
+    ->make_list_builder(ArrayRef[CodeRef] :$items!)
+
+=over
+
+=item * Named Parameters:
+
+=over
+
+=item * ArrayRef[CodeRef] C<:$items>
+
+=back
+
+=back
+
+=head2 make_object_builder
+
+    ->make_object_builder(
+        Str :$class!,
+        HashRef :$arguments!,
+        Str :$cached_by
+    )
+
+=over
+
+=item * Named Parameters:
+
+=over
+
+=item * HashRef C<:$arguments>
+
+The constructor arguments.
+
+=item * Str C<:$cached_by> (optional)
+
+Name of the field in C<$arguments> that holds the cache key.
+
+=item * Str C<:$class>
+
+The class to instantiate.
+
+=back
+
+=back
+
+Creates an (optionally cached) object creation callback.
+
+=head2 make_regex_constant
+
+    ->make_regex_constant(RegexpRef :$value!)
+
+=over
+
+=item * Named Parameters:
+
+=over
+
+=item * RegexpRef C<:$value>
+
+=back
+
+=back
+
+Builds a callback for regular expression constants.
+
+=head2 make_root
+
+    ->make_root(CodeRef :$sequence!)
+
+=over
+
+=item * Named Parameters:
+
+=over
+
+=item * CodeRef C<:$sequence>
+
+=back
+
+=back
+
+Builds a callback to wrap the root sequence with the necessary input logic.
+
+=head2 make_sequence
+
+    ->make_sequence(ArrayRef[CodeRef] :$elements!)
+
+=over
+
+=item * Named Parameters:
+
+=over
+
+=item * ArrayRef[CodeRef] C<:$elements>
+
+Callbacks returning values to concatenate.
+
+=back
+
+=back
+
+Builds a callback that will evaluate all C<$elements> callbacks in turn and return
+the value of the last element.
+
+=head2 make_structure_builder
+
+    ->make_structure_builder(
+        ArrayRef[
+            CodeRef
+        ] :$values!,
+        CodeRef :$template!
+    )
+
+=over
+
+=item * Named Parameters:
+
+=over
+
+=item * CodeRef C<:$template>
+
+A code reference called with the values that go into the structure.
+
+=item * ArrayRef[CodeRef] C<:$values>
+
+Callbacks returning the values to put in the structural template.
+
+=back
+
+=back
+
+Builds a data structure by weaving the C<$values> into the C<$template>.
+
+=head2 map_libraries
+
+Delegation to a generated L<map|Moose::Meta::Attribute::Native::MethodProvider::Array/map> method for the L<libraries|/libraries (required)> attribute.
+
+C<map> for the libraries.
+
+=head2 new_with_resolved_traits
+
+    ->new_with_resolved_traits(ClassName $class: @args)
+
+=over
+
+=item * Positional Parameters:
+
+=over
+
+=item * C<@args>
+
+Arguments for the L<Template::SX::Inflator::ValueScope> object.
+
+=back
+
+=back
+
+Internal method for runtime inflation.
+
+=head2 render_call
+
+    ->render_call(
+        Str :$method!,
+        HashRef[
+            Str
+        ]|ArrayRef[
+            Str
+        ] :$args!,
+        Str :$library
+    )
+
+=over
+
+=item * Named Parameters:
+
+=over
+
+=item * ArrayRef[Str]|HashRef[Str] C<:$args>
+
+Arguments for the method call. Either positional or named.
+
+=item * Str C<:$library> (optional)
+
+Library name if C<$method> is a library method.
+
+=item * Str C<:$method>
+
+Method name to call.
+
+=back
+
+=back
+
+Render a call to an inflator or library method.
+
+=head2 render_escape_wrap
+
+    ->render_escape_wrap(Str $body)
+
+=over
+
+=item * Positional Parameters:
+
+=over
+
+=item * Str C<$body>
+
+=back
+
+=back
+
+Internal method.
+
+=head2 render_sequence
+
+    ->render_sequence(ArrayRef[Object] $sequence)
+
+=over
+
+=item * Positional Parameters:
+
+=over
+
+=item * ArrayRef[Object] C<$sequence>
+
+=back
+
+=back
+
+Renders code for a sequence iterator out of document items.
+
+=head2 resolve_module_meta
+
+    ->resolve_module_meta(ArrayRef[Object] $nodes)
+
+=over
+
+=item * Positional Parameters:
+
+=over
+
+=item * ArrayRef[Object] C<$nodes>
+
+Root nodes.
+
+=back
+
+=back
+
+Takes a list of nodes and returns an array reference of rest nodes plus an optional
+L<Template::SX::Inflator::ModuleMeta> object if a C<module> directive was encountered
+as first element.
+
+=head2 serialize
+
+    ->serialize()
+
+=over
+
+=back
+
+=head2 with_lexicals
+
+    ->with_lexicals(Str @lexicals)
+
+=over
+
+=item * Positional Parameters:
+
+=over
+
+=item * Str C<@lexicals>
+
+=back
+
+=back
+
+Create a new inflator with additional known lexicals.
+
+=head2 with_new_escape_scope
+
+    ->with_new_escape_scope()
+
+=over
+
+=back
+
+Internal method.
+
+=head2 with_new_lexical_collector
+
+    ->with_new_lexical_collector()
+
+=over
+
+=back
+
+=head2 meta
+
+Returns the meta object for C<Template::SX::Inflator> as an instance of L<Class::MOP::Class::Immutable::Moose::Meta::Class>.
+
+=head1 ATTRIBUTES
+
+=head2 document_loader (required)
+
+=over
+
+=item * Type Constraint
+
+CodeRef
+
+=item * Constructor Argument
+
+C<document_loader>
+
+=item * Associated Methods
+
+L<document_loader|/document_loader>
+
+=back
+
+Callback to load a new document.
+
+=head2 libraries (required)
+
+=over
+
+=item * Type Constraint
+
+L<LibraryList|Template::SX::Types/LibraryList>
+
+=item * Default
+
+Built during runtime.
+
+=item * Constructor Argument
+
+C<libraries>
+
+=item * Associated Methods
+
+L<map_libraries|/map_libraries>, L<all_libraries|/all_libraries>, L<find_library|/find_library>, L<add_library|/add_library>
+
+=back
+
+List of loaded library objects.
+
+=head1 SEE ALSO
+
+=over
+
+=item * L<Template::SX>
+
+=item * L<Template::SX::Document>
+
+=back
+
+=head1 LICENSE AND COPYRIGHT
+
+See L<Template::SX> for information about license and copyright.
+
+=cut

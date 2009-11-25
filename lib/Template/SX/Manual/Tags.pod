@@ -1,0 +1,448 @@
+=encoding utf-8
+
+=begin fusion
+
+@see_also Template::SX
+@license  Template::SX
+
+@taglist Template::SX::Manual::Tags
+Find L<Template::SX> documentation by tag
+
+@tagfile maint/tags.json
+
+=end fusion
+
+
+
+
+
+
+=head1 NAME
+
+Template::SX::Manual::Tags - Find L<Template::SX> documentation by tag
+
+=head1 TAGS
+
+=head2 application
+
+=over
+
+=item * L<Template::SX/"General Syntax">
+
+=item * L<Template::SX::Library::Data::Functions/"apply">
+
+=item * L<Template::SX::Library::Data::Functions/"apply/list">
+
+=item * L<Template::SX::Library::ScopeHandling/"apply!">
+
+=back
+
+=head2 arguments
+
+=over
+
+=item * L<Template::SX/"Modules">
+
+=item * L<Template::SX::Library::Inserts>
+
+=item * L<Template::SX::Library::ScopeHandling/"define">
+
+=item * L<Template::SX::Library::ScopeHandling/"lambda">
+
+=back
+
+=head2 barewords
+
+=over
+
+=item * L<Template::SX/"Data Types">
+
+=item * L<Template::SX::Runtime::Bareword>
+
+=back
+
+=head2 booleans
+
+=over
+
+=item * L<Template::SX/"Data Types">
+
+=back
+
+=head2 class methods
+
+=over
+
+=item * L<Template::SX::Library::Data::Objects/"class-invocant">
+
+=back
+
+=head2 conditionals
+
+=over
+
+=item * L<Template::SX::Library::Branching>
+
+=back
+
+=head2 context
+
+=over
+
+=item * L<Template::SX/"Context">
+
+=item * L<Template::SX::Library::Data::Functions/"apply/list">
+
+=back
+
+=head2 equality
+
+=over
+
+=item * L<Template::SX::Library::Data::Numbers/"!=">
+
+=item * L<Template::SX::Library::Data::Numbers/"==">
+
+=item * L<Template::SX::Library::Data::Strings/"eq?">
+
+=item * L<Template::SX::Library::Data::Strings/"ne?">
+
+=back
+
+=head2 filtering
+
+=over
+
+=item * L<Template::SX::Library::Data::Hashes/"hash-grep">
+
+=item * L<Template::SX::Library::Data::Lists/"grep">
+
+=back
+
+=head2 functions
+
+=over
+
+=item * L<Template::SX::Library::Data::Functions>
+
+=item * L<Template::SX::Library::ScopeHandling/"-E<gt>">
+
+=item * L<Template::SX::Library::ScopeHandling/"E<lt>-">
+
+=item * L<Template::SX::Library::ScopeHandling/"define">
+
+=item * L<Template::SX::Library::ScopeHandling/"lambda">
+
+=item * L<Template::SX::Library::ScopeHandling/"λ">
+
+=back
+
+=head2 hashes
+
+=over
+
+=item * L<Template::SX/"Data Types">
+
+=item * L<Template::SX::Library::Data::Hashes>
+
+=back
+
+=head2 importing
+
+=over
+
+=item * L<Template::SX/"Modules">
+
+=item * L<Template::SX::Library::Types/"import/types">
+
+=back
+
+=head2 iteration
+
+=over
+
+=item * L<Template::SX::Library::Data::Functions/"while">
+
+=item * L<Template::SX::Library::Data::Lists/"for-each">
+
+=item * L<Template::SX::Library::Data::Lists/"map">
+
+=back
+
+=head2 keywords
+
+=over
+
+=item * L<Template::SX/"Data Types">
+
+=back
+
+=head2 libraries
+
+=over
+
+=item * L<Template::SX/"Libraries">
+
+=back
+
+=head2 lists
+
+=over
+
+=item * L<Template::SX/"Data Types">
+
+=item * L<Template::SX::Library::Data::Lists>
+
+=item * L<Template::SX::Library::Quoting/"A note about quoted items">
+
+=back
+
+=head2 lower-case
+
+=over
+
+=item * L<Template::SX::Library::Data::Strings/"lower">
+
+=item * L<Template::SX::Library::Data::Strings/"lower-first">
+
+=back
+
+=head2 math
+
+=over
+
+=item * L<Template::SX/"Data Types">
+
+=item * L<Template::SX::Library::Data::Numbers>
+
+=back
+
+=head2 modules
+
+=over
+
+=item * L<Template::SX/"Modules">
+
+=item * L<Template::SX::Library::Inserts>
+
+=back
+
+=head2 object methods
+
+=over
+
+=item * L<Template::SX::Library::Data::Objects/"object-invocant">
+
+=back
+
+=head2 objects
+
+=over
+
+=item * L<Template::SX/"Data Types">
+
+=item * L<Template::SX::Library::Data::Objects>
+
+=item * L<Template::SX::Library::Types/"Type Constraints != Objects">
+
+=back
+
+=head2 order determination
+
+=over
+
+=item * L<Template::SX::Library::Data::Lists/"sort">
+
+=item * L<Template::SX::Library::Data::Numbers/"E<lt>=E<gt>">
+
+=item * L<Template::SX::Library::Data::Strings/"cmp">
+
+=back
+
+=head2 quoting
+
+=over
+
+=item * L<Template::SX::Library::Quoting>
+
+=back
+
+=head2 regular expressions
+
+=over
+
+=item * L<Template::SX/"Data Types">
+
+=item * L<Template::SX::Library::Data::Regex>
+
+=back
+
+=head2 roles
+
+=over
+
+=item * L<Template::SX::Library::Data::Objects/"does?">
+
+=back
+
+=head2 runtime value
+
+=over
+
+=item * L<Template::SX/"Data Types">
+
+=item * L<Template::SX::Runtime::Bareword>
+
+=back
+
+=head2 scoping
+
+=over
+
+=item * L<Template::SX::Library::ScopeHandling/"let">
+
+=item * L<Template::SX::Library::ScopeHandling/"let*">
+
+=item * L<Template::SX::Library::ScopeHandling/"let-rec">
+
+=back
+
+=head2 sequential mapping
+
+=over
+
+=item * L<Template::SX::Library::Data::Hashes/"hash-map">
+
+=item * L<Template::SX::Library::Data::Lists/"map">
+
+=back
+
+=head2 setter
+
+=over
+
+=item * L<Template::SX::Library::Data::Common/"values">
+
+=item * L<Template::SX::Library::Data::Hashes/"hash-ref">
+
+=item * L<Template::SX::Library::Data::Hashes/"hash-splice">
+
+=item * L<Template::SX::Library::Data::Lists/"list-ref">
+
+=item * L<Template::SX::Library::Data::Lists/"list-splice">
+
+=item * L<Template::SX::Library::ScopeHandling/"apply!">
+
+=item * L<Template::SX::Library::ScopeHandling/"set!">
+
+=back
+
+=head2 shortcut
+
+=over
+
+=item * L<Template::SX::Library::ScopeHandling/"-E<gt>">
+
+=item * L<Template::SX::Library::ScopeHandling/"E<lt>-">
+
+=item * L<Template::SX::Library::ScopeHandling/"λ">
+
+=back
+
+=head2 strings
+
+=over
+
+=item * L<Template::SX/"Data Types">
+
+=item * L<Template::SX::Library::Data::Strings>
+
+=back
+
+=head2 type objects
+
+=over
+
+=item * L<Template::SX/"Data Types">
+
+=item * L<Template::SX::Library::Data::Objects/"object-invocant">
+
+=item * L<Template::SX::Library::ScopeHandling/"lambda">
+
+=item * L<Template::SX::Library::Types>
+
+=back
+
+=head2 type predicate
+
+=over
+
+=item * L<Template::SX::Library::Data::Common/"defined?">
+
+=item * L<Template::SX::Library::Data::Hashes/"hash?">
+
+=item * L<Template::SX::Library::Data::Lists/"list?">
+
+=item * L<Template::SX::Library::Data::Pairs/"pair?">
+
+=item * L<Template::SX::Library::Data::Pairs/"pairs?">
+
+=item * L<Template::SX::Library::Data::Regex/"regex?">
+
+=item * L<Template::SX::Library::Data::Strings/"string?">
+
+=item * L<Template::SX::Library::Types/"type?">
+
+=back
+
+=head2 upper-case
+
+=over
+
+=item * L<Template::SX::Library::Data::Strings/"upper">
+
+=item * L<Template::SX::Library::Data::Strings/"upper-first">
+
+=back
+
+=head2 value collection
+
+=over
+
+=item * L<Template::SX::Library::Data::Lists/"gather">
+
+=back
+
+=head2 variables
+
+=over
+
+=item * L<Template::SX/"Variables">
+
+=item * L<Template::SX::Library::ScopeHandling/"define">
+
+=item * L<Template::SX::Library::ScopeHandling/"lambda">
+
+=item * L<Template::SX::Library::ScopeHandling/"let">
+
+=item * L<Template::SX::Library::ScopeHandling/"let*">
+
+=item * L<Template::SX::Library::ScopeHandling/"let-rec">
+
+=item * L<Template::SX::Library::Types/"import/types">
+
+=back
+
+=head1 SEE ALSO
+
+=over
+
+=item * L<Template::SX>
+
+=back
+
+=head1 LICENSE AND COPYRIGHT
+
+See L<Template::SX> for information about license and copyright.
+
+=cut

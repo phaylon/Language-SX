@@ -39,6 +39,72 @@ class Template::SX::Library::Exceptions extends Template::SX::Library {
 
 __END__
 
+=encoding utf-8
+
+=begin fusion
+
+@license  Template::SX
+@see_also Template::SX
+@see_also Template::SX::Library::Data::Objects
+@see_also Template::SX::Library::ScopeHandling
+
+@class Template::SX::Library::Exceptions
+Handling and throwing exceptions
+
+@SYNOPSIS
+
+    ; throw a simple error
+    (error "something is wrong!")
+
+    ; catch an error
+    (catch
+      (lambda () (something-that-throws-an-exception))
+      (lambda (e)
+        (handle-exception e)))
+
+@DESCRIPTION
+
+This library holds the extensions for throwing and handling errors and exceptions.
+
+=head1 PROVIDED FUNCTIONS
+
+=head2 error
+
+    (error <value>)
+
+This function takes a single value of any type and will throw it with Perl's C<die> statement. If you pass it
+an object, it will be thrown as an exception.
+
+Examples:
+
+    (error "simple text error\n")
+    (error (make-some-exception-object))
+
+=head2 catch
+
+    (catch <try-thunk> <handle-callback>)
+
+While L</error> allows you to throw exceptions and errors, C<catch> will allow you to handle them. The first argument
+has to be a code reference that will be called without arguments. If the code reference does not throw an exception, its
+return value will be returned by C<catch>. If it does raise an exception, it will be caught and the second argument will 
+be invoked with the caught value as argument. It will then return the value that the handler routine returned:
+
+    (define (safe-division . args)
+      (catch
+        (lambda () (apply / args))
+        (lambda (e)
+          (some-logger "error during division" e)
+          0)))
+
+The above will log an error and return C<0> instead of a division result if the division gave an error.
+
+=end fusion
+
+
+
+
+
+
 =head1 NAME
 
 Template::SX::Library::Exceptions - Handling and throwing exceptions
@@ -53,6 +119,32 @@ Template::SX::Library::Exceptions - Handling and throwing exceptions
       (lambda () (something-that-throws-an-exception))
       (lambda (e)
         (handle-exception e)))
+
+=head1 INHERITANCE
+
+=over 2
+
+=item *
+
+Template::SX::Library::Exceptions
+
+=over 2
+
+=item *
+
+L<Template::SX::Library>
+
+=over 2
+
+=item *
+
+L<Moose::Object>
+
+=back
+
+=back
+
+=back
 
 =head1 DESCRIPTION
 
@@ -90,10 +182,34 @@ be invoked with the caught value as argument. It will then return the value that
 
 The above will log an error and return C<0> instead of a division result if the division gave an error.
 
+=head1 METHODS
+
+=head2 new
+
+Object constructor.
+
+=over
+
+=back
+
+=head2 meta
+
+Returns the meta object for C<Template::SX::Library::Exceptions> as an instance of L<Moose::Meta::Class>.
+
 =head1 SEE ALSO
 
-L<Template::SX>,
-L<Template::SX::Library::Data::Objects>,
-L<Template::SX::Library::ScopeHandling>
+=over
+
+=item * L<Template::SX>
+
+=item * L<Template::SX::Library::Data::Objects>
+
+=item * L<Template::SX::Library::ScopeHandling>
+
+=back
+
+=head1 LICENSE AND COPYRIGHT
+
+See L<Template::SX> for information about license and copyright.
 
 =cut

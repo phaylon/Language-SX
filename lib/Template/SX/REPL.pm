@@ -107,3 +107,224 @@ class Template::SX::REPL {
         }
     }
 }
+
+__END__
+
+=encoding utf-8
+
+=begin fusion
+
+@see_also Template::SX
+@see_also Term::ReadLine::Zoid
+@license  Template::SX
+
+@class Template::SX::REPL
+Reads, evaluates and prints L<Template::SX> expressions in a loop
+
+@method complete
+Currently inactive method.
+
+@method find_barewords_in_string
+Currently inactive method.
+
+@method run
+Runs the script code.
+
+@method save_session
+%param $session List of entries to save.
+%param $target  Filename of the saved session.
+Saves the session in a file.
+
+@attr sx
+The L<Template::SX> instance evaluating the expressions.
+
+@DESCRIPTION
+This module contains functionality for a L<Template::SX> REPL. A command-line interpreter
+to play around in.
+
+=end fusion
+
+
+
+
+
+
+=head1 NAME
+
+Template::SX::REPL - Reads, evaluates and prints L<Template::SX> expressions in a loop
+
+=head1 INHERITANCE
+
+=over 2
+
+=item *
+
+Template::SX::REPL
+
+=over 2
+
+=item *
+
+L<Moose::Object>
+
+=back
+
+=back
+
+=head1 DESCRIPTION
+
+This module contains functionality for a L<Template::SX> REPL. A command-line interpreter
+to play around in.
+
+=head1 METHODS
+
+=head2 new
+
+Object constructor accepting the following parameters:
+
+=over
+
+=item * sx (optional)
+
+Initial value for the L<sx|/"sx (required)"> attribute.
+
+=back
+
+=head2 clear_sx
+
+Clearer for the L<sx|/"sx (required)"> attribute.
+
+=head2 complete
+
+    ->complete(
+        ArrayRef[
+            Str
+        ] $possible,
+        Str $word,
+        Str $buffer,
+        Int $start
+    )
+
+=over
+
+=item * Positional Parameters:
+
+=over
+
+=item * ArrayRef[Str] C<$possible>
+
+=item * Str C<$word>
+
+=item * Str C<$buffer>
+
+=item * Int C<$start>
+
+=back
+
+=back
+
+Currently inactive method.
+
+=head2 find_barewords_in_string
+
+    ->find_barewords_in_string(Str $string, Str $not)
+
+=over
+
+=item * Positional Parameters:
+
+=over
+
+=item * Str C<$string>
+
+=item * Str C<$not>
+
+=back
+
+=back
+
+Currently inactive method.
+
+=head2 has_sx
+
+Predicate for the L<sx|/"sx (required)"> attribute.
+
+=head2 run
+
+    ->run()
+
+=over
+
+=back
+
+Runs the script code.
+
+=head2 save_session
+
+    ->save_session(ArrayRef[Str] $session, File $target does coerce)
+
+=over
+
+=item * Positional Parameters:
+
+=over
+
+=item * ArrayRef[Str] C<$session>
+
+List of entries to save.
+
+=item * L<File|MooseX::Types::Path::Class/File> C<$target>
+
+Filename of the saved session.
+
+=back
+
+=back
+
+Saves the session in a file.
+
+=head2 meta
+
+Returns the meta object for C<Template::SX::REPL> as an instance of L<Class::MOP::Class::Immutable::Moose::Meta::Class>.
+
+=head1 ATTRIBUTES
+
+=head2 sx (required)
+
+=over
+
+=item * Type Constraint
+
+L<Template::SX>
+
+=item * Default
+
+Built lazily during runtime.
+
+=item * Constructor Argument
+
+C<sx>
+
+=item * Associated Methods
+
+L<has_sx|/has_sx>, L<clear_sx|/clear_sx>
+
+=back
+
+The L<Template::SX> instance evaluating the expressions.
+
+=head1 SEE ALSO
+
+=over
+
+=item * L<Template::SX>
+
+=item * L<Term::ReadLine::Zoid>
+
+=back
+
+=head1 LICENSE AND COPYRIGHT
+
+See L<Template::SX> for information about license and copyright.
+
+=cut

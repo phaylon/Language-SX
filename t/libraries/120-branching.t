@@ -12,6 +12,11 @@ my @try = (
     ['(if 1 2 3)',      2,          'if with true and alternative'],
     ['(if 1 2)',        2,          'if with true and no alternative'],
 
+    ['(unless 0 2 3)',  2,          'unless with false and alternative'],
+    ['(unless 0 2)',    2,          'unless with false and no alternative'],
+    ['(unless 1 2 3)',  3,          'unless with true and alternative'],
+    ['(unless 1 2)',    undef,      'unless with true and no alternative'],
+
     [   q{
             (define (test args)
               (cond ((at args :foo)
@@ -47,6 +52,10 @@ my @fails = (
     ['(if)',                [E_SYNTAX,      qr/if condition/],              'if without arguments'],
     ['(if 1)',              [E_SYNTAX,      qr/if condition/],              'if with single argument'],
     ['(if 1 2 3 4)',        [E_SYNTAX,      qr/if condition/],              'if with more than 3 arguments'],
+
+    ['(unless)',            [E_SYNTAX,      qr/unless condition/],          'unless without arguments'],
+    ['(unless 1)',          [E_SYNTAX,      qr/unless condition/],          'unless with single argument'],
+    ['(unless 1 2 3 4)',    [E_SYNTAX,      qr/unless condition/],          'unless with more than 3 arguments'],
 
     ['(cond)',              [E_SYNTAX,      qr/at least one clause/],       'cond without arguments'],
     ['(cond 23)',           [E_SYNTAX,      qr/list/,       1, 7],          'cond with non-list argument'],

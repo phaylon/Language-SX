@@ -37,27 +37,39 @@ class Template::SX::Library::Types extends Template::SX::Library {
         }),
     );
 
+    my $BuildTypeCheck = sub {
+        my $name = shift;
+        my $tc   = shift;
+        my $neg  = shift;
+
+        return sub {
+
+            E_PROTOTYPE->throw(
+                class       => E_PARAMETER,
+                attributes  => { message => "predicate generated with $name for $tc requires at least one value to test" },
+            ) unless @_;
+
+            for (@_) {
+                return undef if $neg      and     $tc->check($_);
+                return undef if not($neg) and not($tc->check($_));
+            }
+
+            return 1;
+        };
+    };
+
     CLASS->add_functions(
         'type?' => CLASS->wrap_function('type?', { min => 1 }, sub { 
             return scalar(grep { not( blessed($_) and $_->isa('Moose::Meta::TypeConstraint') ) } @_) ? undef : 1;
         }),
         'is?' => CLASS->wrap_function('is?', { min => 1, types => [qw( type )] }, sub {
 
-            my $tc   = shift;
-            my $pred = sub {
+            my $pred = $BuildTypeCheck->('is?', shift);
+            return @_ ? $pred->(@_) : $pred;
+        }),
+        'isnt?' => CLASS->wrap_function('isnt?', { min => 1, types => [qw( type )] }, sub {
 
-                E_PROTOTYPE->throw(
-                    class       => E_PARAMETER,
-                    attributes  => { message => "predicate generated with is? for $tc requires at least one value to test" },
-                ) unless @_;
-
-                for (@_) {
-                    return undef unless $tc->check($_);
-                }
-
-                return 1;
-            };
-
+            my $pred = $BuildTypeCheck->('isnt?', shift(@_), 1);
             return @_ ? $pred->(@_) : $pred;
         }),
         'coerce' => CLASS->wrap_function('coerce', { min => 2, max => 2, types => [qw( type )] }, sub {
@@ -234,6 +246,278 @@ class Template::SX::Library::Types extends Template::SX::Library {
 
 __END__
 
+=encoding utf-8
+
+=begin fusion
+
+@see_also Template::SX
+@see_also Template::SX::Library::Data::Lists
+@see_also Template::SX::Library::ScopeHandling
+@see_also Moose::Manual::Types
+@see_also MooseX::Types
+
+@license  Template::SX
+
+@class Template::SX::Library::Types
+Type functionality
+
+@method make_type_import
+%param :$import Import specification
+Makes a type import callback.
+
+@SYNOPSIS
+
+    ; importing types from a MooseX::Types library
+    (import/types
+      (Moose Str Int ArrayRef HashRef)  ; import only some
+      Path::Class)                      ; import all
+
+    ; parameterizing types
+    (define MyList (ArrayRef Int))
+
+    ; testing a value
+    (if (is? ArrayRef foo)
+      foo
+      #f)
+
+    ; coercing a value
+    (define value
+      (coerce MyTypeWithCoercions foo))
+
+    ; creating an anonymous subtype
+    (define NonEmptyStr
+      (subtype Str
+        where:   (-> (and (string? _) (not (empty? _))))
+        message: "not a string or not empty"))
+
+    ; type predicate
+    (if (type? foo)
+      "is a type"
+      "is not a type")
+
+    ; type unions
+    (define StrOrList
+      (union Str ArrayRef[Str]))
+
+    ; enum types
+    (define HTTPMethod
+      (enum "post" "get" "put" "delete"))
+
+    ; values in an enum
+    (enum->list HTTPMethod)
+
+    ; creating an enum from a list
+    (list->enum (list "foo" "bar"))
+
+@DESCRIPTION
+
+This library provides extensions necessary to operate with and on L<Moose type constraint|Moose::Manual::Types>
+objects.
+
+!TAG<type objects>
+
+=head2 Type Constraints != Objects
+
+!TAG<objects>
+
+At least when used in L<Template::SX>, type constraints are not regarded as objects. An invocation of a type
+constraint will always invoke the parameterization, not the actual object. This means that:
+
+    (ArrayRef Int)          ; will create a parameterized type
+    (ArrayRef :check 3)     ; will most likely fail, same as ArrayRef[check => 3]
+
+If you really need to invoke the type constraints object methods, use L<Template::SX::Library::Data::Objects/object-invocant>:
+
+    ; call method 'check' on type object
+    ((object-invocant (ArrayRef Int)) :check 3)
+
+Besides this, type constraints are first class values as usual.=head2 Where Types Come from
+
+You will have to use L</"import/types"> to actually load type constraints into your namespace. There are no types provided by
+default, and no strings will be accepted in place of a type constraint object.
+
+=head2 Type Library Examples
+
+=over
+
+=item * L<MooseX::Types::Moose>
+
+    ; create an ArrayRef[HashRef[Int]]
+    (import/types Moose)
+    (define MyType (ArrayRef (HashRef Int)))
+
+=item * L<MooseX::Types::Path::Class>
+
+    ; create a file inflator
+    (import/types Path::Class)
+    (define (inflate-file value)
+      (coerce File value))
+
+=item * L<MooseX::Types::Structured>
+
+    ; create a record
+    (import/types Structured Moose Path::Class)
+    (define PersonRecord
+      (Dict :name   Str
+            :image  (Tuple File Str)))
+
+=back
+
+=head1 PROVIDES SYNTAX ELEMENTS
+
+=head2 import/types
+
+!TAG<variables>
+!TAG<importing>
+
+    (import/types <import-spec> ...)
+
+The C<import/types> syntax element is used to import L<Moose type constraint|Moose::Manual::Types> 
+objects into the current lexical environment.
+
+Valid constructs for C<import-spec> are barewords and lists containing a library name and a set of
+types to import. As an example,
+
+    (import/types Moose)
+
+would import all type constraints declared in L<MooseX::Types::Moose>. If you wanted to only import
+certain constraints, name them explicitely:
+
+    (import/types (Moose Int Str))
+
+This will only import the C<Int> and C<Str> type constraints.
+
+When looking for a library by name C<import/types> will first try to load it prefixed with C<MooseX::Types::>.
+This means that the name C<Moose> above will result in an attempt to use C<MooseX::Types::Moose> first, and a
+package named C<Moose> later. L<Moose> itself isn't a type library, so it will be skipped. This means that if
+you want to use a library from a different namespace than C<MooseX::Types::>, you can specify the full name
+instead. This all means that
+
+    (import/types MyProject::Types)
+
+will first look for C<MooseX::Types::MyProject::Types> (which it will probably not find) and then load
+C<MyProject::Types> if it exists.
+
+You can specify multiple import specifications at once, like in the L</SYNOPSIS>:
+
+    (import/types Structured Path::Class (Moose Int Str))
+
+=head1 PROVIDES FUNCTIONS
+
+=head2 type?
+
+    (type? <value> ...)
+
+Takes one or more values as argument and returns true if all of them are type constraints. If at least one
+of them isn't it will return an undefined value. This function requires at least one argument.
+
+!TAG<type predicate>
+
+=head2 is?
+
+    (is? <type> <value> ...)
+    (is? <type>)
+
+This function performs two jobs. When it receives two or more arguments it will use the type constraint in the
+first argument to check all other values passed in.
+
+If there is only a single type argument, C<is?> will return a predicate code reference that will test all its
+arguments against the closed over type constraint.
+
+Here is an example of how to simply test if a value conforms to a type:
+
+    (if (is? (ArrayRef Int) ls)
+      (do-something-with ls)
+      (do-something-else))
+
+The above will execute C<do-something-with> with the C<ls> argument if C<ls> is an C<ArrayRef> of C<Int>s. If we
+used it this way to grep a list, we would come up with something like this:
+
+    (grep ls 
+          (lambda (item) 
+            (is? (ArrayRef Int) item)))
+
+But we can also omit the value arguments to create a predicate code reference. This means we can shorten the above
+to
+
+    (grep ls (is? (ArrayRef Int)))
+
+This also has the advantage of not recreating the parameterized type on every run.
+
+=head2 coerce
+
+    (coerce <type> <value>)
+
+This function expects exactly two arguments. The first is the type we want to coerce to, the second is the value we
+want to coerce. A simple real-life example would be:
+
+    (import/types Path::Class)
+    (define foo_path (coerce File "x/y/foo.txt"))   ; now a Path::Class::File
+
+It is currently not yet possible to declare coercions withing L<Template::SX>.
+
+=head2 subtype
+
+    (subtype <type> where: <test-func> message: <message-func-or-string>)
+
+This is a function that will take a C<type> constraint and return a new subtype based on it. it will optionally take
+a C<where> and a C<message> option. If C<where> is specified it has to be a code reference that will receive the value
+to test as its single argument. The C<message> can be either a code reference receiving the failed value or a string:
+
+    (subtype Int 
+      where:   even? 
+      message: (-> "value ${_} is not an even integer"))
+
+=head2 union
+
+    (union <type> ...)
+
+This function will create a type union containing all specified types. At least one type argument must be specified. If
+there is only one argument, it will be returned without being wrapped in an union. 
+
+To create a type that allows either an array or hash reference you can use this:
+
+    (union ArrayRef HashRef)
+
+=head2 enum
+
+    (enum <value> ...)
+
+This simply creates an enum out of the specified values like you know it from L<Moose|Moose::Manual::Types>. It expects
+at least one value.
+
+Example:
+
+    ; foo or bar
+    (enum "foo" "bar")
+
+=head2 enum->list
+
+    (enum->list <enum>)
+
+This function takes a single enum type constraint and returns a list containing the values the enum is containing.
+
+    ; returns [qw( foo bar )]
+    (enum->list (enum "foo" "bar"))
+
+=head2 list->enum
+
+    (list->enum <list>)
+
+This is basically the same as L</enum> but it takes a list as a single argument, instead of expecting the valid values
+to be passed in as one argument each. You could also see this as the reverse of L</enum-L<gt>list>.
+
+    ; these are the same
+    (enum "foo" "bar")
+    (list->enum (list "foo" "bar"))
+
+=end fusion
+
+
+
+
+
+
 =head1 NAME
 
 Template::SX::Library::Types - Type functionality
@@ -282,6 +566,32 @@ Template::SX::Library::Types - Type functionality
     ; creating an enum from a list
     (list->enum (list "foo" "bar"))
 
+=head1 INHERITANCE
+
+=over 2
+
+=item *
+
+Template::SX::Library::Types
+
+=over 2
+
+=item *
+
+L<Template::SX::Library>
+
+=over 2
+
+=item *
+
+L<Moose::Object>
+
+=back
+
+=back
+
+=back
+
 =head1 DESCRIPTION
 
 This library provides extensions necessary to operate with and on L<Moose type constraint|Moose::Manual::Types>
@@ -300,9 +610,7 @@ If you really need to invoke the type constraints object methods, use L<Template
     ; call method 'check' on type object
     ((object-invocant (ArrayRef Int)) :check 3)
 
-Besides this, type constraints are first class values as usual.
-
-=head2 Where Types Come from
+Besides this, type constraints are first class values as usual.=head2 Where Types Come from
 
 You will have to use L</"import/types"> to actually load type constraints into your namespace. There are no types provided by
 default, and no strings will be accepted in place of a type constraint object.
@@ -311,20 +619,20 @@ default, and no strings will be accepted in place of a type constraint object.
 
 =over
 
-=item L<MooseX::Types::Moose>
+=item * L<MooseX::Types::Moose>
 
     ; create an ArrayRef[HashRef[Int]]
     (import/types Moose)
     (define MyType (ArrayRef (HashRef Int)))
 
-=item L<MooseX::Types::Path::Class>
+=item * L<MooseX::Types::Path::Class>
 
     ; create a file inflator
     (import/types Path::Class)
     (define (inflate-file value)
       (coerce File value))
 
-=item L<MooseX::Types::Structured>
+=item * L<MooseX::Types::Structured>
 
     ; create a record
     (import/types Structured Moose Path::Class)
@@ -338,7 +646,7 @@ default, and no strings will be accepted in place of a type constraint object.
 
 =head2 import/types
 
-  (import/types <import-spec> ...)
+    (import/types <import-spec> ...)
 
 The C<import/types> syntax element is used to import L<Moose type constraint|Moose::Manual::Types> 
 objects into the current lexical environment.
@@ -370,7 +678,6 @@ You can specify multiple import specifications at once, like in the L</SYNOPSIS>
 
     (import/types Structured Path::Class (Moose Int Str))
 
-
 =head1 PROVIDES FUNCTIONS
 
 =head2 type?
@@ -379,7 +686,6 @@ You can specify multiple import specifications at once, like in the L</SYNOPSIS>
 
 Takes one or more values as argument and returns true if all of them are type constraints. If at least one
 of them isn't it will return an undefined value. This function requires at least one argument.
-
 
 =head2 is?
 
@@ -412,7 +718,6 @@ to
 
 This also has the advantage of not recreating the parameterized type on every run.
 
-
 =head2 coerce
 
     (coerce <type> <value>)
@@ -424,7 +729,6 @@ want to coerce. A simple real-life example would be:
     (define foo_path (coerce File "x/y/foo.txt"))   ; now a Path::Class::File
 
 It is currently not yet possible to declare coercions withing L<Template::SX>.
-
 
 =head2 subtype
 
@@ -438,7 +742,6 @@ to test as its single argument. The C<message> can be either a code reference re
       where:   even? 
       message: (-> "value ${_} is not an even integer"))
 
-
 =head2 union
 
     (union <type> ...)
@@ -449,7 +752,6 @@ there is only one argument, it will be returned without being wrapped in an unio
 To create a type that allows either an array or hash reference you can use this:
 
     (union ArrayRef HashRef)
-
 
 =head2 enum
 
@@ -463,7 +765,6 @@ Example:
     ; foo or bar
     (enum "foo" "bar")
 
-
 =head2 enum->list
 
     (enum->list <enum>)
@@ -472,7 +773,6 @@ This function takes a single enum type constraint and returns a list containing 
 
     ; returns [qw( foo bar )]
     (enum->list (enum "foo" "bar"))
-
 
 =head2 list->enum
 
@@ -485,13 +785,58 @@ to be passed in as one argument each. You could also see this as the reverse of 
     (enum "foo" "bar")
     (list->enum (list "foo" "bar"))
 
+=head1 METHODS
+
+=head2 new
+
+Object constructor.
+
+=over
+
+=back
+
+=head2 make_type_import
+
+    ->make_type_import(ArrayRef[ArrayRef] :$import!)
+
+=over
+
+=item * Named Parameters:
+
+=over
+
+=item * ArrayRef[ArrayRef] C<:$import>
+
+Import specification
+
+=back
+
+=back
+
+Makes a type import callback.
+
+=head2 meta
+
+Returns the meta object for C<Template::SX::Library::Types> as an instance of L<Moose::Meta::Class>.
 
 =head1 SEE ALSO
 
-L<Template::SX>,
-L<Template::SX::Library::Data::Lists>,
-L<Template::SX::Library::ScopeHandling>,
-L<Moose::Manual::Types>,
-L<MooseX::Types>
+=over
+
+=item * L<Template::SX>
+
+=item * L<Template::SX::Library::Data::Lists>
+
+=item * L<Template::SX::Library::ScopeHandling>
+
+=item * L<Moose::Manual::Types>
+
+=item * L<MooseX::Types>
+
+=back
+
+=head1 LICENSE AND COPYRIGHT
+
+See L<Template::SX> for information about license and copyright.
 
 =cut

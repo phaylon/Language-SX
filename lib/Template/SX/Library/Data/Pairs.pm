@@ -103,3 +103,255 @@ class Template::SX::Library::Data::Pairs extends Template::SX::Library {
         }),
     );
 }
+
+__END__
+
+=encoding utf-8
+
+=begin fusion
+
+@see_also Template::SX
+@see_also Template::SX::Library::Data::Lists
+@see_also Template::SX::Library::Data::Hashes
+@license  Template::SX
+
+@class Template::SX::Library::Data::Pairs
+All functionality for working with pairs
+
+@SYNOPSIS
+
+    ; creating pair lists
+    (list->pairs '(1 2 3 4))        ; ((1 2) (3 4))
+    (hash->pairs { x: 2 y: 3 })     ; ((x: 2) (y: 3))
+    (compound->pairs '(1 2 3 4))    ; ((1 2) (3 4))
+    (compound->pairs { x: 2 y: 3 }) ; ((x: 2) (y: 3))
+
+    ; predicates
+    (pair? '(2 3))                  ; #t
+    (pair? '(3))                    ; #f
+    (pairs? '((2 3) (4 5)))         ; #t
+    (pairs? '((2 3) (4)))           ; #f
+
+    ; transforming pairs
+    (pairs->list '((1 2) (3 4)))    ; (1 2 3 4)
+    (pairs->hash '((x: 2) (y: 3)))  ; { x: 2 y: 3 }
+
+@DESCRIPTION
+Sometimes you want to process data pair-wise, but not as a key/value store. Maybe because 
+you want to allow duplicate keys, maybe you want to allow non-string key values, or maybe
+you simply care about the order. This library contains all built-in functionality concerned
+with pairs and pair-wise data.
+
+A pair is defined as an array reference containing exactly two values. 
+
+=head1 PROVIDED FUNCTIONS
+
+=head2 list->pairs
+
+    (list->pairs <list>)
+
+This function takes a even-sized C<list> as an argument and will return a new list
+containing pairs made out of the original C<list>'s values. Here is a simple
+example:
+
+    (list->pairs '(1 2 3 4 5 6)) 
+        ; returns ((1 2) (3 4) (5 6))
+
+=head2 hash->pairs
+
+    (hash->pairs <hash>)
+
+Does the same as L</"list-E<gt>pairs"> but takes a hash instead of a list:
+
+    (hash->pairs { x: 2 y: 3 z: 4 })
+        ; returns ((x: 2) (y: 3) (z: 4))
+
+=head2 compound->pairs
+
+    (compound->pairs <list-or-hash>)
+
+If the argument is a hash, it will be passed to L</"hash-E<gt>pairs">. If it is a list
+it will be passed to L</"list-E<gt>pairs">.
+
+=head2 pair?
+
+    (pair? <item> ...)
+
+This predicate function will return true if all arguments are pairs.
+
+!TAG<type predicate>
+
+=head2 pairs?
+
+    (pairs? <item> ...)
+
+This predicate function will return true if all arguments are lists of pairs.
+
+!TAG<type predicate>
+
+=head2 pairs->list
+
+    (pairs->list <list-of-pairs>)
+
+Transforms a list of pairs into a flat list:
+
+    (pairs->list '((1 2) (3 4) (5 6)))
+        ; returns (1 2 3 4 5 6)
+
+=head2 pairs->hash
+
+    (pairs->hash <list-of-pairs>)
+
+Same as L</"pairs-E<gt>list"> but transforms the pairs into a hash.
+
+=end fusion
+
+
+
+
+
+
+=head1 NAME
+
+Template::SX::Library::Data::Pairs - All functionality for working with pairs
+
+=head1 SYNOPSIS
+
+    ; creating pair lists
+    (list->pairs '(1 2 3 4))        ; ((1 2) (3 4))
+    (hash->pairs { x: 2 y: 3 })     ; ((x: 2) (y: 3))
+    (compound->pairs '(1 2 3 4))    ; ((1 2) (3 4))
+    (compound->pairs { x: 2 y: 3 }) ; ((x: 2) (y: 3))
+
+    ; predicates
+    (pair? '(2 3))                  ; #t
+    (pair? '(3))                    ; #f
+    (pairs? '((2 3) (4 5)))         ; #t
+    (pairs? '((2 3) (4)))           ; #f
+
+    ; transforming pairs
+    (pairs->list '((1 2) (3 4)))    ; (1 2 3 4)
+    (pairs->hash '((x: 2) (y: 3)))  ; { x: 2 y: 3 }
+
+=head1 INHERITANCE
+
+=over 2
+
+=item *
+
+Template::SX::Library::Data::Pairs
+
+=over 2
+
+=item *
+
+L<Template::SX::Library>
+
+=over 2
+
+=item *
+
+L<Moose::Object>
+
+=back
+
+=back
+
+=back
+
+=head1 DESCRIPTION
+
+Sometimes you want to process data pair-wise, but not as a key/value store. Maybe because 
+you want to allow duplicate keys, maybe you want to allow non-string key values, or maybe
+you simply care about the order. This library contains all built-in functionality concerned
+with pairs and pair-wise data.
+
+A pair is defined as an array reference containing exactly two values. 
+
+=head1 PROVIDED FUNCTIONS
+
+=head2 list->pairs
+
+    (list->pairs <list>)
+
+This function takes a even-sized C<list> as an argument and will return a new list
+containing pairs made out of the original C<list>'s values. Here is a simple
+example:
+
+    (list->pairs '(1 2 3 4 5 6)) 
+        ; returns ((1 2) (3 4) (5 6))
+
+=head2 hash->pairs
+
+    (hash->pairs <hash>)
+
+Does the same as L</"list-E<gt>pairs"> but takes a hash instead of a list:
+
+    (hash->pairs { x: 2 y: 3 z: 4 })
+        ; returns ((x: 2) (y: 3) (z: 4))
+
+=head2 compound->pairs
+
+    (compound->pairs <list-or-hash>)
+
+If the argument is a hash, it will be passed to L</"hash-E<gt>pairs">. If it is a list
+it will be passed to L</"list-E<gt>pairs">.
+
+=head2 pair?
+
+    (pair? <item> ...)
+
+This predicate function will return true if all arguments are pairs.
+
+=head2 pairs?
+
+    (pairs? <item> ...)
+
+This predicate function will return true if all arguments are lists of pairs.
+
+=head2 pairs->list
+
+    (pairs->list <list-of-pairs>)
+
+Transforms a list of pairs into a flat list:
+
+    (pairs->list '((1 2) (3 4) (5 6)))
+        ; returns (1 2 3 4 5 6)
+
+=head2 pairs->hash
+
+    (pairs->hash <list-of-pairs>)
+
+Same as L</"pairs-E<gt>list"> but transforms the pairs into a hash.
+
+=head1 METHODS
+
+=head2 new
+
+Object constructor.
+
+=over
+
+=back
+
+=head2 meta
+
+Returns the meta object for C<Template::SX::Library::Data::Pairs> as an instance of L<Moose::Meta::Class>.
+
+=head1 SEE ALSO
+
+=over
+
+=item * L<Template::SX>
+
+=item * L<Template::SX::Library::Data::Lists>
+
+=item * L<Template::SX::Library::Data::Hashes>
+
+=back
+
+=head1 LICENSE AND COPYRIGHT
+
+See L<Template::SX> for information about license and copyright.
+
+=cut

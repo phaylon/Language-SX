@@ -16,15 +16,15 @@ class Template::SX::Document::Cell
     Class::MOP::load_class($_)
         for E_SYNTAX, E_END_OF_STREAM;
 
-    method compile (Object $inf, Scope $scope) {
+    method compile (Template::SX::Inflator $inf, Scope $scope) {
 
         my $method = "compile_$scope";
         return $self->$method($inf);
     }
 
-    method compile_functional { 'FUNCT CELL' }
+    method compile_functional { die "missing compile_functional implementation in subclass (@_)\n" }
 
-    method _compile_structural_template (Object $inf, Object $item, CodeRef $collect) {
+    method _compile_structural_template (Template::SX::Inflator $inf, Object $item, CodeRef $collect) {
 
         if ($item->isa('Template::SX::Document::Cell::Application')) {
 
@@ -56,7 +56,7 @@ class Template::SX::Document::Cell
         }
     }
 
-    method compile_structural (Object $inf) {
+    method compile_structural (Template::SX::Inflator $inf) {
 
         my @args;
         my $collector = sub {
@@ -93,10 +93,10 @@ class Template::SX::Document::Cell
 
     method new_from_stream (
         ClassName $class: 
-            Object   $doc, 
-            Object   $stream, 
-            Str      $value,
-            Location $loc
+            Template::SX::Document          $doc, 
+            Template::SX::Reader::Stream    $stream, 
+            Str                             $value,
+            Location                        $loc
     ) {
         
         my $self = $class->new_from_value($value, $loc);
@@ -172,3 +172,238 @@ class Template::SX::Document::Cell
         return join '::', __PACKAGE__, $specific_class;
     }
 }
+
+__END__
+
+=encoding utf-8
+
+=begin fusion
+
+@see_also Template::SX
+@see_also Template::SX::Cell::Application
+@see_also Template::SX::Cell::Hash
+@license  Template::SX
+
+@class Template::SX::Document::Cell
+Cell item base class
+
+@method compile
+Dispatches to either L</compile_functional> or L</compile_structural> depending
+on C<$scope>.
+
+@method compile_functional
+This is a stub method that will die unless the subclass overrides it.
+
+@method compile_structural
+This method will compile the nodes as deep as possible into a structural template
+and will pass it along with the compiled child nodes' values to 
+L<Template::SX::Inflator/make_structure_builder>.
+
+@method new_from_stream
+%param $value Either C<(>, C<[> or C<{>. Used to determine the type of cell.
+Will return a new cell subclass according to the C<$value>.
+
+@method new_from_value
+%param $value Same as in L</new_from_stream> with same function.
+This method does the actual building of an empty cell subclass valid for the 
+C<$value>.
+
+@description
+Holds the base functionality for all cell document item classes.
+
+=end fusion
+
+
+
+
+
+
+=head1 NAME
+
+Template::SX::Document::Cell - Cell item base class
+
+=head1 INHERITANCE
+
+=over 2
+
+=item *
+
+Template::SX::Document::Cell
+
+=over 2
+
+=item *
+
+L<Template::SX::Document::Container>
+
+=over 2
+
+=item *
+
+L<Moose::Object>
+
+=back
+
+=back
+
+=back
+
+=head1 APPLIED ROLES
+
+=over
+
+=item * L<Template::SX::Document::Locatable>
+
+=back
+
+=head1 DESCRIPTION
+
+Holds the base functionality for all cell document item classes.
+
+=head1 METHODS
+
+=head2 new
+
+Object constructor accepting the following parameters:
+
+=over
+
+=item * location (B<required>)
+
+Initial value for the L<location|Template::SX::Document::Locatable/"location (required)"> attribute
+composed in by L<Template::SX::Document::Locatable>.
+
+=item * nodes (optional)
+
+Initial value for the L<nodes|Template::SX::Document::Container/"nodes (required)"> attribute
+inherited from L<Template::SX::Document::Container>.
+
+=back
+
+=head2 compile
+
+    ->compile(Template::SX::Inflator $inf, Scope $scope)
+
+=over
+
+=item * Positional Parameters:
+
+=over
+
+=item * L<Template::SX::Inflator> C<$inf>
+
+=item * L<Scope|Template::SX::Types/Scope> C<$scope>
+
+=back
+
+=back
+
+Dispatches to either L</compile_functional> or L</compile_structural> depending
+on C<$scope>.
+
+=head2 compile_functional
+
+    ->compile_functional(@)
+
+=over
+
+=back
+
+This is a stub method that will die unless the subclass overrides it.
+
+=head2 compile_structural
+
+    ->compile_structural(Template::SX::Inflator $inf)
+
+=over
+
+=item * Positional Parameters:
+
+=over
+
+=item * L<Template::SX::Inflator> C<$inf>
+
+=back
+
+=back
+
+This method will compile the nodes as deep as possible into a structural template
+and will pass it along with the compiled child nodes' values to 
+L<Template::SX::Inflator/make_structure_builder>.
+
+=head2 new_from_stream
+
+    ->new_from_stream(
+        ClassName $class:
+        Template::SX::Document $doc,
+        Template::SX::Reader::Stream $stream,
+        Str $value,
+        Location $loc
+    )
+
+=over
+
+=item * Positional Parameters:
+
+=over
+
+=item * L<Template::SX::Document> C<$doc>
+
+=item * L<Template::SX::Reader::Stream> C<$stream>
+
+=item * Str C<$value>
+
+Same as in L</new_from_stream> with same function.
+
+=item * L<Location|Template::SX::Types/Location> C<$loc>
+
+=back
+
+=back
+
+Will return a new cell subclass according to the C<$value>.
+
+=head2 new_from_value
+
+    ->new_from_value(ClassName $class: Str $value, Location $loc)
+
+=over
+
+=item * Positional Parameters:
+
+=over
+
+=item * Str C<$value>
+
+Same as in L</new_from_stream> with same function.
+
+=item * L<Location|Template::SX::Types/Location> C<$loc>
+
+=back
+
+=back
+
+This method does the actual building of an empty cell subclass valid for the 
+C<$value>.
+
+=head2 meta
+
+Returns the meta object for C<Template::SX::Document::Cell> as an instance of L<Class::MOP::Class::Immutable::Moose::Meta::Class>.
+
+=head1 SEE ALSO
+
+=over
+
+=item * L<Template::SX>
+
+=item * L<Template::SX::Cell::Application>
+
+=item * L<Template::SX::Cell::Hash>
+
+=back
+
+=head1 LICENSE AND COPYRIGHT
+
+See L<Template::SX> for information about license and copyright.
+
+=cut

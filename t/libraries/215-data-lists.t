@@ -67,6 +67,16 @@ my @should_work = (
 
     ['(list-splice `(1 2 3 4 5) 1)',    [2, 3, 4, 5],       'list-splice with implicit length'],
     ['(list-splice `(1 2 3 4) 1 2)',    [2, 3],             'list-splice with explicit length'],
+    ['(list-splice `(1 2 3 4) -2)',     [3, 4],             'list-splice with negative start and implicit length'],
+    ['(list-splice `(2 3) 0 3)',        [2, 3],             'list-splice with explicit length and too high length'],
+    ['(list-splice `(2 3) -3)',         [2, 3],             'list-splice with implicit length and too low negative start'],
+    ['(list-splice `(2 3) -2 1)',       [2],                'list-splice with negative start and explicit and positive length inside bounds'],
+    ['(list-splice `(2 3) -1 2)',       [3],                'list-splice with negative start and explicit length outside bounds'],
+    ['(list-splice `(1 2 3 4) 2 -2)',   [2, 3],             'list-splice with negative length inside bounds'],
+    ['(list-splice `(1 2 3 4) -2 -2)',  [2, 3],             'list-splice with negative start and negative length in bounds'],
+    ['(list-splice `(2 3) -3 2)',       [2],                'list-splice with negative start out of bounds and explicit positive length'],
+    ['(list-splice `(2 3) -3 3)',       [2, 3],             'list-splice with negative start and positive length both out of bounds'],
+    ['(list-splice `(2 3) -3 -3)',      [],                 'list-splice with negative start and length both out of bounds'],
 
     [   '(gather (lambda (take) (for-each `(1 2 3) (-> (take _)))))',
         [1, 2, 3],
@@ -128,6 +138,37 @@ push @should_work, [
         [2, 23, 24, 25, 6],
     ],
     'setting a list-splice',
+];
+
+push @should_work, [
+    q{
+        (define ls1 '(1 2 3 4 5))
+        (define ls2 (append ls1))
+        (define ls3 (append ls1))
+        (define ls4 (append ls1))
+        (define ls5 (append ls1))
+        (define ls6 (append ls1))
+        (define ls7 (append ls1))
+
+        (set! (list-splice ls1 -2)      '(9 8 7))
+        (set! (list-splice ls2 3 -2)    '(9 8 7))
+        (set! (list-splice ls3 1 -3)    '(23 24 25))
+        (set! (list-splice ls4 -2 -3)   '(9 8 7))
+        (set! (list-splice ls5 -7 3)    '(9 8 7))
+        (set! (list-splice ls6 -7 30)   '(9 8 7))
+        (set! (list-splice ls7 -7 -3)   '(9 8 7))
+
+        (list ls1 ls2 ls3 ls4 ls5 ls6 ls7)
+    },
+    [   [1, 2, 3, 9, 8, 7],
+        [1, 2, 9, 8, 7, 5],
+        [23, 24, 25, 3, 4, 5],
+        [1, 9, 8, 7, 5],
+        [9, 8, 7, 2, 3, 4, 5],
+        [9, 8, 7],
+        [9, 8, 7, 1, 2, 3, 4, 5],
+    ],
+    'complex setting of a list-splice',
 ];
 
 push @should_work, [

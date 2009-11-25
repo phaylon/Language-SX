@@ -55,17 +55,17 @@ class Template::SX::Reader::Stream {
         $self->offset( $stream->offset );
     }
 
-    method content_line_count {
+    method content_line_count () {
         my @lines = split /\n/, $self->content;
         return scalar @lines;
     }
 
-    method content_rest_line_count {
+    method content_rest_line_count () {
         my @lines = split /\n/, $self->content_rest;
         return scalar @lines;
     }
 
-    method current_line {
+    method current_line () {
 
         return( 
             ($self->content_line_count - $self->content_rest_line_count) 
@@ -73,7 +73,7 @@ class Template::SX::Reader::Stream {
         );
     }
 
-    method current_location {
+    method current_location () {
 
         return +{
             source  => $self->source_name,
@@ -84,7 +84,7 @@ class Template::SX::Reader::Stream {
         };
     }
 
-    method current_char {
+    method current_char () {
 
         my $last_nl = rindex $self->content, "\n", $self->offset;
 
@@ -389,3 +389,471 @@ class Template::SX::Reader::Stream {
         }
     }
 }
+
+1;
+
+__END__
+
+=encoding utf-8
+
+=begin fusion
+
+@see_also Template::SX
+@see_also Template::SX::Reader
+@license  Template::SX
+
+@class Template::SX::Reader::Stream
+Transform strings to token streams
+
+@method content_length
+Returns the length of the whole content string.
+
+@method content_line_count
+Returns the number of lines in the content string.
+
+@method content_rest
+Rest of the content beyond the L</offset>.
+
+@method content_rest_length
+Length of the L</content_rest>.
+
+@method content_rest_line_count
+Number of lines left in the rest of the content.
+
+@method current_char
+The current character in the current line.
+
+@method current_line
+The current line.
+
+@method current_line_content
+Content of the current line.
+
+@method current_location
+Builds a L<Template::SX::Types/Location>.
+
+@method end_of_stream
+True if we hit the end of the stream.
+
+@method next_token
+Return the next token in the stream.
+
+@method offset
+The current offset in the content string.
+
+@method reset
+Reset the offset.
+
+@method set_from_stream
+%param :$stream The stream with the value to transfer.
+Takes values (currently only the offset) from the passed stream and sets it in the
+current instance.
+
+@method skip
+Skip a number of characters.
+
+@method skip_spaces
+Skip all possible spaces in the stream.
+
+@method substream
+%param :$offset Where the new substream starts.
+Create a new stream that starts at the passed in C<$offset>.
+
+@method to_tokens
+B<Deprecated!> Builds a list of all tokens.
+
+@method token_precedence
+Returns the order of the token types to try.
+
+@method try_regex
+%param $rx The regular expression to try.
+%param :$bare Don't enforce specialised token ends.
+
+@attr content
+The content string.
+
+@attr offset
+The offset in the content string.
+
+@attr source_name
+A descriptive name identifying the source. For example a filename.
+
+=end fusion
+
+
+
+
+
+
+=head1 NAME
+
+Template::SX::Reader::Stream - Transform strings to token streams
+
+=head1 INHERITANCE
+
+=over 2
+
+=item *
+
+Template::SX::Reader::Stream
+
+=over 2
+
+=item *
+
+L<Moose::Object>
+
+=back
+
+=back
+
+=head1 METHODS
+
+=head2 new
+
+Object constructor accepting the following parameters:
+
+=over
+
+=item * content (B<required>)
+
+Initial value for the L<content|/"content (required)"> attribute.
+
+=item * offset (B<required>)
+
+Initial value for the L<offset|/"offset (required)"> attribute.
+
+=item * source_name (optional)
+
+Initial value for the L<source_name|/"source_name (required)"> attribute.
+
+=back
+
+=head2 content
+
+Reader for the L<content|/"content (required)"> attribute.
+
+=head2 content_length
+
+Delegation to a generated L<length|Moose::Meta::Attribute::Native::MethodProvider::String/length> method for the L<content|/content (required)> attribute.
+
+Returns the length of the whole content string.
+
+=head2 content_line_count
+
+    ->content_line_count()
+
+=over
+
+=back
+
+Returns the number of lines in the content string.
+
+=head2 content_rest
+
+    ->content_rest()
+
+=over
+
+=back
+
+Rest of the content beyond the L</offset>.
+
+=head2 content_rest_length
+
+    ->content_rest_length()
+
+=over
+
+=back
+
+Length of the L</content_rest>.
+
+=head2 content_rest_line_count
+
+    ->content_rest_line_count()
+
+=over
+
+=back
+
+Number of lines left in the rest of the content.
+
+=head2 content_substr
+
+Delegation to a generated L<substr|Moose::Meta::Attribute::Native::MethodProvider::String/substr> method for the L<content|/content (required)> attribute.
+
+=head2 current_char
+
+    ->current_char()
+
+=over
+
+=back
+
+The current character in the current line.
+
+=head2 current_line
+
+    ->current_line()
+
+=over
+
+=back
+
+The current line.
+
+=head2 current_line_content
+
+    ->current_line_content()
+
+=over
+
+=back
+
+Content of the current line.
+
+=head2 current_location
+
+    ->current_location()
+
+=over
+
+=back
+
+Builds a L<Template::SX::Types/Location>.
+
+=head2 end_of_stream
+
+    ->end_of_stream()
+
+=over
+
+=back
+
+True if we hit the end of the stream.
+
+=head2 next_token
+
+    ->next_token()
+
+=over
+
+=back
+
+Return the next token in the stream.
+
+=head2 offset
+
+Accessor for the L<offset|/"offset (required)"> attribute.
+
+The current offset in the content string.
+
+=head2 reset
+
+Delegation to a generated L<reset|Moose::Meta::Attribute::Native::MethodProvider::Counter/reset> method for the L<offset|/offset (required)> attribute.
+
+Reset the offset.
+
+=head2 set_from_stream
+
+    ->set_from_stream(Object :$stream)
+
+=over
+
+=item * Named Parameters:
+
+=over
+
+=item * Object C<:$stream> (optional)
+
+The stream with the value to transfer.
+
+=back
+
+=back
+
+Takes values (currently only the offset) from the passed stream and sets it in the
+current instance.
+
+=head2 skip
+
+Delegation to a generated L<inc|Moose::Meta::Attribute::Native::MethodProvider::Counter/inc> method for the L<offset|/offset (required)> attribute.
+
+Skip a number of characters.
+
+=head2 skip_spaces
+
+    ->skip_spaces()
+
+=over
+
+=back
+
+Skip all possible spaces in the stream.
+
+=head2 source_name
+
+Accessor for the L<source_name|/"source_name (required)"> attribute.
+
+=head2 substream
+
+    ->substream(Int :$offset)
+
+=over
+
+=item * Named Parameters:
+
+=over
+
+=item * Int C<:$offset> (optional)
+
+Where the new substream starts.
+
+=back
+
+=back
+
+Create a new stream that starts at the passed in C<$offset>.
+
+=head2 to_tokens
+
+    ->to_tokens()
+
+=over
+
+=back
+
+B<Deprecated!> Builds a list of all tokens.
+
+=head2 token_precedence
+
+    ->token_precedence()
+
+=over
+
+=back
+
+Returns the order of the token types to try.
+
+=head2 try_regex
+
+    ->try_regex(RegexpRef $rx, Bool :$bare)
+
+=over
+
+=item * Positional Parameters:
+
+=over
+
+=item * RegexpRef C<$rx>
+
+The regular expression to try.
+
+=back
+
+=item * Named Parameters:
+
+=over
+
+=item * Bool C<:$bare> (optional)
+
+Don't enforce specialised token ends.
+
+=back
+
+=back
+
+=head2 meta
+
+Returns the meta object for C<Template::SX::Reader::Stream> as an instance of L<Class::MOP::Class::Immutable::Moose::Meta::Class>.
+
+=head1 ATTRIBUTES
+
+=head2 content (required)
+
+=over
+
+=item * Type Constraint
+
+Str
+
+=item * Default
+
+C<>
+
+=item * Constructor Argument
+
+C<content>
+
+=item * Associated Methods
+
+L<content|/content>, L<content_length|/content_length>, L<content_substr|/content_substr>
+
+=back
+
+The content string.
+
+=head2 offset (required)
+
+=over
+
+=item * Type Constraint
+
+L<Offset|Template::SX::Types/Offset>
+
+=item * Default
+
+C<0>
+
+=item * Constructor Argument
+
+C<offset>
+
+=item * Associated Methods
+
+L<offset|/offset>, L<reset|/reset>, L<skip|/skip>
+
+=back
+
+The offset in the content string.
+
+=head2 source_name (required)
+
+=over
+
+=item * Type Constraint
+
+Str
+
+=item * Default
+
+Built during runtime.
+
+=item * Constructor Argument
+
+C<source_name>
+
+=item * Associated Methods
+
+L<source_name|/source_name>
+
+=back
+
+A descriptive name identifying the source. For example a filename.
+
+=head1 SEE ALSO
+
+=over
+
+=item * L<Template::SX>
+
+=item * L<Template::SX::Reader>
+
+=back
+
+=head1 LICENSE AND COPYRIGHT
+
+See L<Template::SX> for information about license and copyright.
+
+=cut

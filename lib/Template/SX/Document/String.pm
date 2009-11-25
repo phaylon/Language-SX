@@ -14,7 +14,7 @@ class Template::SX::Document::String {
 
     has string_parts => (
         traits      => [qw( Array )],
-        isa         => ArrayRef[Object | ArrayRef[Object]],
+        isa         => ArrayRef['Template::SX::Document::String::Constant' | ArrayRef[Object]],
         required    => 1,
         handles     => {
             all_string_parts    => 'elements',
@@ -22,7 +22,7 @@ class Template::SX::Document::String {
         },
     );
 
-    method compile (Object $inf, Scope $scope) {
+    method compile (Template::SX::Inflator $inf, Scope $scope) {
 
         return $inf->render_call(
             method  => 'make_concatenation',
@@ -32,7 +32,7 @@ class Template::SX::Document::String {
         );
     }
 
-    method render_elements (Object $inf, Scope $scope) {
+    method render_elements (Template::SX::Inflator $inf, Scope $scope) {
 
         return sprintf(
             '[%s]', join(
@@ -46,7 +46,7 @@ class Template::SX::Document::String {
         );
     }
 
-    method new_from_stream (ClassName $class: Object $doc, Object $stream, Str $value, Location $loc) {
+    method new_from_stream (ClassName $class: Template::SX::Document $doc, Template::SX::Reader::Stream $stream, Str $value, Location $loc) {
 
         my $skipped = 0;
         $value = $stream->content_substr($loc->{offset});
@@ -129,4 +129,208 @@ class Template::SX::Document::String {
     }
 }
 
+__END__
 
+=encoding utf-8
+
+=begin fusion
+
+@see_also Template::SX
+@see_also Template::SX::Document::String::Constant
+@license  Template::SX
+
+@class Template::SX::Document::String
+Interpolated and constant string values
+
+@method compile
+Compiles the string into a call to L<Template::SX::Inflator/make_concatenation> that that
+will build a single string with the values rendered by L</render_elements>.
+
+@method new_from_stream
+%param $value Either C<"> or C<»> designating a string start.
+Parses a string in the stream into a tree structure containing constant strings and
+interpolated parts as L</"string_parts (required)">.
+
+@method render_elements
+This will render L</all_string_parts> in a functional scope. Interpolated values will be
+rendered by L<Template::SX::Inflator/render_sequence>.
+
+@attr string_parts
+A list of mixed string constants and array reference sequences forming the contents of
+the string.
+
+@description
+This class handles constant and interpolating strings and their transformations.
+
+=end fusion
+
+
+
+
+
+
+=head1 NAME
+
+Template::SX::Document::String - Interpolated and constant string values
+
+=head1 INHERITANCE
+
+=over 2
+
+=item *
+
+Template::SX::Document::String
+
+=over 2
+
+=item *
+
+L<Moose::Object>
+
+=back
+
+=back
+
+=head1 DESCRIPTION
+
+This class handles constant and interpolating strings and their transformations.
+
+=head1 METHODS
+
+=head2 new
+
+Object constructor accepting the following parameters:
+
+=over
+
+=item * string_parts (B<required>)
+
+Initial value for the L<string_parts|/"string_parts (required)"> attribute.
+
+=back
+
+=head2 all_string_parts
+
+Delegation to a generated L<elements|Moose::Meta::Attribute::Native::MethodProvider::Array/elements> method for the L<string_parts|/string_parts (required)> attribute.
+
+=head2 compile
+
+    ->compile(Template::SX::Inflator $inf, Scope $scope)
+
+=over
+
+=item * Positional Parameters:
+
+=over
+
+=item * L<Template::SX::Inflator> C<$inf>
+
+=item * L<Scope|Template::SX::Types/Scope> C<$scope>
+
+=back
+
+=back
+
+Compiles the string into a call to L<Template::SX::Inflator/make_concatenation> that that
+will build a single string with the values rendered by L</render_elements>.
+
+=head2 new_from_stream
+
+    ->new_from_stream(
+        ClassName $class:
+        Template::SX::Document $doc,
+        Template::SX::Reader::Stream $stream,
+        Str $value,
+        Location $loc
+    )
+
+=over
+
+=item * Positional Parameters:
+
+=over
+
+=item * L<Template::SX::Document> C<$doc>
+
+=item * L<Template::SX::Reader::Stream> C<$stream>
+
+=item * Str C<$value>
+
+Either C<"> or C<»> designating a string start.
+
+=item * L<Location|Template::SX::Types/Location> C<$loc>
+
+=back
+
+=back
+
+Parses a string in the stream into a tree structure containing constant strings and
+interpolated parts as L</"string_parts (required)">.
+
+=head2 render_elements
+
+    ->render_elements(Template::SX::Inflator $inf, Scope $scope)
+
+=over
+
+=item * Positional Parameters:
+
+=over
+
+=item * L<Template::SX::Inflator> C<$inf>
+
+=item * L<Scope|Template::SX::Types/Scope> C<$scope>
+
+=back
+
+=back
+
+This will render L</all_string_parts> in a functional scope. Interpolated values will be
+rendered by L<Template::SX::Inflator/render_sequence>.
+
+=head2 string_part_count
+
+Delegation to a generated L<count|Moose::Meta::Attribute::Native::MethodProvider::Array/count> method for the L<string_parts|/string_parts (required)> attribute.
+
+=head2 meta
+
+Returns the meta object for C<Template::SX::Document::String> as an instance of L<Class::MOP::Class::Immutable::Moose::Meta::Class>.
+
+=head1 ATTRIBUTES
+
+=head2 string_parts (required)
+
+=over
+
+=item * Type Constraint
+
+ArrayRef[ArrayRef[Object]|L<Template::SX::Document::String::Constant>]
+
+=item * Constructor Argument
+
+C<string_parts>
+
+=item * Associated Methods
+
+L<string_part_count|/string_part_count>, L<all_string_parts|/all_string_parts>
+
+=back
+
+A list of mixed string constants and array reference sequences forming the contents of
+the string.
+
+=head1 SEE ALSO
+
+=over
+
+=item * L<Template::SX>
+
+=item * L<Template::SX::Document::String::Constant>
+
+=back
+
+=head1 LICENSE AND COPYRIGHT
+
+See L<Template::SX> for information about license and copyright.
+
+=cut

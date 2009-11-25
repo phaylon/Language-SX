@@ -70,6 +70,8 @@ my @try = (
         [1, 2, 3],
         'applying an object in list context',
     ],
+
+    ['((rev-curry list) 1 2 3)', [3, 2, 1], 'rev-curry'],
 );
 
 my @fails = (
@@ -95,6 +97,10 @@ my @fails = (
     ['(rcurry)',            [E_PARAMETER,   qr/not enough/],    'right currying without arguments'],
     ['(rcurry +)',          [E_PARAMETER,   qr/not enough/],    'right currying with single argument'],
     ['(rcurry 3 4)',        [E_TYPE,        qr/applicant/],     'right currying a non-applicant'],
+
+    ['(rev-curry)',         [E_PARAMETER,   qr/not enough/],    'rev-curry without arguments'],
+    ['(rev-curry + 3)',     [E_PARAMETER,   qr/too many/],      'rev-curry with more than one argument'],
+    ['(rev-curry 3)',       [E_TYPE,        qr/lambda/],        'rev-curry with non-function argument'],
 );
 
 with_libs(sub {

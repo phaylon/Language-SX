@@ -8,9 +8,6 @@ PROCESSING:
 
 BASIC:
 
-    (error "invalid something")
-    (catch (λ () ...) (λ (e) ...))
-
 
 
 

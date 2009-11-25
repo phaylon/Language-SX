@@ -29,6 +29,15 @@ my @should_work = (
     [$M . '(type? Int Str ArrayRef)',                                   1,                              'type? with all-type arguments'],
     [$M . '(type? Int 3 Str)',                                          undef,                          'type? with mixed arguments'],
 
+    [$M . '(isnt? Int 3)',                                              undef,                          'isnt? with valid value'],
+    [$M . '(isnt? Int "foo")',                                          1,                              'isnt? with invalid value'],
+    [$M . '(isnt? Int 3 4 5 6)',                                        undef,                          'isnt? with all-valid values'],
+    [$M . '(isnt? Int 3 4 "x" 6)',                                      undef,                          'isnt? with mixed arguments'],
+    [$M . '((isnt? Int) 3)',                                            undef,                          'isnt? generated predicate with valid value'],
+    [$M . '((isnt? Int) "foo")',                                        1,                              'isnt? generated predicate with invalid value'],
+    [$M . '((isnt? Int) 3 4 5 6)',                                      undef,                          'isnt? generated predicate with all-valid values'],
+    [$M . '((isnt? Int) 3 4 "x" 6)',                                    undef,                          'isnt? generated predicate with mixed arguments'],
+
     [$M . '(is? Int 3)',                                                1,                              'is? with valid value'],
     [$M . '(is? Int "foo")',                                            undef,                          'is? with invalid value'],
     [$M . '(is? Int 3 4 5 6)',                                          1,                              'is? with all-valid values'],
@@ -64,6 +73,10 @@ my @should_fail = (
     ['(import/types Moose) (ArrayRef)',     [E_APPLY,       qr/parameter/],                     'calling a typeconstraint without argument'],
 
     ['(type?)',                             [E_PARAMETER,   qr/not enough/],                    'type? without arguments'],
+
+    ['(isnt?)',                             [E_PARAMETER,   qr/not enough/],                    'isnt? without arguments'],
+    ['(isnt? 23)',                          [E_TYPE,        qr/type/],                          'isnt? with non-type argument'],
+    [$M . '((isnt? Int))',                  [E_PARAMETER,   qr/value to test/],                 'isnt? generated predicate without arguments'],
 
     ['(is?)',                               [E_PARAMETER,   qr/not enough/],                    'is? without arguments'],
     ['(is? 23)',                            [E_TYPE,        qr/type/],                          'is? with non-type argument'],

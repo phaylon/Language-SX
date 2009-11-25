@@ -158,6 +158,17 @@ push @try, [
     'simple variable apply!',
 ];
 
+push @try, [
+    q{
+        (define (sum-1 n) (if (> 0 n) 0 (+ (sum-1 (-- n)) n)))
+        (define sum-2 (-> (if (> 0 _) 0 (+ (sum-2 (-- _)) _))))
+
+        (list (sum-1 3) (sum-2 4))
+    },
+    [6, 10],
+    'self-calling function definition',
+];
+
 with_libs(sub {
     die_on_fail;
 
@@ -345,7 +356,7 @@ with_libs(sub {
         is $@->location->{char}, $char, 'correct char number';
     }
 
-}, 'ScopeHandling', 'Data::Numbers', 'Quoting', 'Data::Lists', 'Types');
+}, 'ScopeHandling', 'Data::Numbers', 'Quoting', 'Data::Lists', 'Types', 'Branching');
 
 done_testing;
 

@@ -69,7 +69,7 @@ class Template::SX::Library {
         return $self;
     }
 
-    method additional_inflator_traits { () }
+    method additional_inflator_traits () { () }
 
     method _build_sequence_operator (ClassName $class: Str $op, Str $name?) {
 
@@ -205,3 +205,217 @@ class Template::SX::Library {
         };
     }
 }
+
+__END__
+
+=encoding utf-8
+
+=begin fusion
+
+@license  Template::SX
+@see_also Template::SX
+
+@class Template::SX::Library
+Library base class.
+
+@method add_functions
+%param @args A list of function name / code reference pairs.
+Adds a function to the library.
+
+@method additional_inflator_traits
+A list of additional traits to apply to a newly created L<Template::SX::Inflator> during compilation.
+
+@method has_function
+Returns the library object if the function exists.
+
+@method has_setter
+Returns the library object if the setter exists.
+
+@method has_syntax
+Returns the library object if the syntax exists.
+
+@method wrap_function
+%param $name Name of the function (used in error messages and such).
+%param $args Signature specification.
+%param $body The function to wrap.
+Wraps the passed C<$body> in a closure doing argument validation.
+
+=end fusion
+
+
+
+
+
+
+=head1 NAME
+
+Template::SX::Library - Library base class.
+
+=head1 INHERITANCE
+
+=over 2
+
+=item *
+
+Template::SX::Library
+
+=over 2
+
+=item *
+
+L<Moose::Object>
+
+=back
+
+=back
+
+=head1 METHODS
+
+=head2 new
+
+Object constructor.
+
+=over
+
+=back
+
+=head2 add_functions
+
+    ->add_functions(ClassName $class: @args)
+
+=over
+
+=item * Positional Parameters:
+
+=over
+
+=item * C<@args>
+
+A list of function name / code reference pairs.
+
+=back
+
+=back
+
+Adds a function to the library.
+
+=head2 additional_inflator_traits
+
+    ->additional_inflator_traits()
+
+=over
+
+=back
+
+A list of additional traits to apply to a newly created L<Template::SX::Inflator> during compilation.
+
+=head2 has_function
+
+    ->has_function(Str $name)
+
+=over
+
+=item * Positional Parameters:
+
+=over
+
+=item * Str C<$name>
+
+Name of the function (used in error messages and such).
+
+=back
+
+=back
+
+Returns the library object if the function exists.
+
+=head2 has_setter
+
+    ->has_setter(Str $name)
+
+=over
+
+=item * Positional Parameters:
+
+=over
+
+=item * Str C<$name>
+
+Name of the function (used in error messages and such).
+
+=back
+
+=back
+
+Returns the library object if the setter exists.
+
+=head2 has_syntax
+
+    ->has_syntax(Str $name)
+
+=over
+
+=item * Positional Parameters:
+
+=over
+
+=item * Str C<$name>
+
+Name of the function (used in error messages and such).
+
+=back
+
+=back
+
+Returns the library object if the syntax exists.
+
+=head2 wrap_function
+
+    ->wrap_function(
+        ClassName $class:
+        Str $name,
+        HashRef $args,
+        CodeRef $body
+    )
+
+=over
+
+=item * Positional Parameters:
+
+=over
+
+=item * Str C<$name>
+
+Name of the function (used in error messages and such).
+
+=item * HashRef C<$args>
+
+Signature specification.
+
+=item * CodeRef C<$body>
+
+The function to wrap.
+
+=back
+
+=back
+
+Wraps the passed C<$body> in a closure doing argument validation.
+
+=head2 meta
+
+Returns the meta object for C<Template::SX::Library> as an instance of L<Moose::Meta::Class>.
+
+=head1 SEE ALSO
+
+=over
+
+=item * L<Template::SX>
+
+=back
+
+=head1 LICENSE AND COPYRIGHT
+
+See L<Template::SX> for information about license and copyright.
+
+=cut
