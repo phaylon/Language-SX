@@ -163,7 +163,7 @@ Available coercions:
 
 =over
 
-=item * ArrayRef[Str|L<Language::SX::Library>]
+=item * ArrayRef[L<Language::SX::Library>|Str]
 
 =back
 

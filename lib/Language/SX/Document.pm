@@ -298,7 +298,8 @@ Create a new document node out of a stream.
 %param :$include_path Where to look for files.
 %param :$persist      If true, the C<$vars> won't be copied but used in-place.
 %param :$vars         Initial variable values for the run.
-Runs the L</loaded_callback> in a suitable document environment.
+Runs the L</loaded_callback> in a suitable document environment with the specified
+arguments.
 
 @attr compiled_body
 The compiled body of the document inflation code.
@@ -633,31 +634,8 @@ Create a new document node out of a stream.
 
 =head2 run
 
-    ->run(HashRef :$vars = {}, Bool :$persist, Dir :$include_path)
-
-=over
-
-=item * Named Parameters:
-
-=over
-
-=item * L<Dir|MooseX::Types::Path::Class/Dir> C<:$include_path> (optional)
-
-Where to look for files.
-
-=item * Bool C<:$persist> (optional)
-
-If true, the C<$vars> won't be copied but used in-place.
-
-=item * HashRef C<:$vars> (optional)
-
-Initial variable values for the run.
-
-=back
-
-=back
-
-Runs the L</loaded_callback> in a suitable document environment.
+Runs the L</loaded_callback> in a suitable document environment with the specified
+arguments.
 
 =head2 source_name
 

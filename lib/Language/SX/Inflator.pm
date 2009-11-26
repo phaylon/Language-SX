@@ -582,13 +582,13 @@ class Language::SX::Inflator {
 
         # many runtime objects are ro and can be cached for better performance
         if ($cached_by) {
-            warn "CACHED $class\n";
+#            warn "CACHED $class\n";
             my $cached = $self->_object_cache->{ $class }{ $arguments->{ $cached_by } } 
                      ||= $class->new($arguments);
             return subname CACHED_OBJECT_BUILDER => sub { $cached };
         }
         else {
-            warn "UNCACHED $class\n";
+#            warn "UNCACHED $class\n";
             return subname OBJECT_BUILDER => sub { $class->new($arguments) };
         }
     }

@@ -284,9 +284,9 @@ Builder for the L<content_formatter|/"content_formatter (optional)">
 
 =over
 
-=item * L<MooseX::Traits>
-
 =item * L<Language::SX::Rendering>
+
+=item * L<MooseX::Traits>
 
 =back
 
@@ -340,19 +340,7 @@ L<content_formatter|/"content_formatter (optional)">.
 
 =head2 render_item
 
-    ->render_item($item)
-
-=over
-
-=item * Positional Parameters:
-
-=over
-
-=item * C<$item>
-
-=back
-
-=back
+Undocumented method.
 
 =head2 meta
 

@@ -102,11 +102,11 @@ L<Moose::Object>
 
 =over
 
-=item * L<MooseX::Traits>
-
 =item * L<Language::SX::Renderer::TagBased>
 
 =item * L<Language::SX::Rendering>
+
+=item * L<MooseX::Traits>
 
 =back
 

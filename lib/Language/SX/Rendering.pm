@@ -71,22 +71,6 @@ entry point for views and such.
 
 =head2 render
 
-    ->render($tree)
-
-=over
-
-=item * Positional Parameters:
-
-=over
-
-=item * C<$tree>
-
-The tree to render.
-
-=back
-
-=back
-
 Takes a tree structure and renders it.
 
 =head2 meta

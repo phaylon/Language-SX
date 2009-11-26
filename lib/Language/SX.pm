@@ -143,7 +143,7 @@ class Language::SX {
         );
     }
 }
-
+1;
 __END__
 
 =encoding utf-8
@@ -220,7 +220,7 @@ use side-by-side with Perl.
 
 =head2 A Summary
 
-Because you might be to impatient to read all the documentation to find out if this does what you want,
+Because you might be too impatient to read all the documentation to find out if this does what you want,
 here is a quick checklist:
 
 =over
@@ -626,7 +626,7 @@ use side-by-side with Perl.
 
 =head2 A Summary
 
-Because you might be to impatient to read all the documentation to find out if this does what you want,
+Because you might be too impatient to read all the documentation to find out if this does what you want,
 here is a quick checklist:
 
 =over
