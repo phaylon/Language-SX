@@ -3,6 +3,7 @@ use inc::Module::Install;
 name            'Language-SX';
 license         'perl';
 all_from        'lib/Language/SX.pm';
+readme_from     'lib/Language/SX.pm';
 
 auto_provides_class;
 
@@ -21,7 +22,7 @@ requires        'Class::MOP'                    => 0.94;
 requires        'Continuation::Escape'          => 0.03;
 requires        'Data::Alias'                   => 1.07;
 requires        'Data::Dump';
-requires        'HTML::Entitires';
+requires        'HTML::Entities';
 requires        'List::AllUtils'                => 0.02;
 requires        'Moose'                         => 0.92;
 requires        'MooseX::ClassAttribute'        => 0.10;

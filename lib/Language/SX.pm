@@ -420,7 +420,7 @@ L<Language::SX::Library::Data::Hashes/hash> or with a (quoted or unquoted) C<{}>
 =head3 Objects
 
 !TAG<objects>
-1TAG<object methods>
+!TAG<object methods>
 
 You can invoke objects just like functions. You have to pass the method to call in as
 first argument. These will all call C<foo> on C<obj>:
@@ -808,8 +808,6 @@ Hashes are always hash references. You can create them with
 L<Language::SX::Library::Data::Hashes/hash> or with a (quoted or unquoted) C<{}> cell.
 
 =head3 Objects
-
-1TAG<object methods>
 
 You can invoke objects just like functions. You have to pass the method to call in as
 first argument. These will all call C<foo> on C<obj>:

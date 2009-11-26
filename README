@@ -1,0 +1,542 @@
+NAME
+    Language::SX - An S-Expression to Perl code inflator
+
+SYNOPSIS
+        my $sx  = Language::SX->new(use_global_cache => 1);
+        my $res = $sx->run(file => $file, { somevalue => 23 });
+
+INHERITANCE
+    * Language::SX
+
+      * Moose::Object
+
+APPLIED ROLES
+    *   MooseX::Traits
+
+DESCRIPTION
+    "Language::SX" is an implementation for executing S-Expression code in
+    Perl. The used language is loosely based on Scheme, but many things are
+    different to make it all more Perlish and easier to use side-by-side
+    with Perl.
+
+  A Summary
+    Because you might be too impatient to read all the documentation to find
+    out if this does what you want, here is a quick checklist:
+
+    *   No tail-call-$anything. While internally some places might use
+        "goto" to optimize for space or speed, no user code will be
+        implicitely tailcalled.
+
+    *   Lisp and with this also Scheme are list-based languages.
+        "Language::SX" implements more of a data structure language, in that
+        it also allows you to create (and quote) Perl hashes.
+
+    *   It's slower than pure Perl, obviously.
+
+    *   Special handling for Moose type constraints to better integrate them
+        into the language. They can be imported, passed around as usual,
+        used in function signatures, nested, etc.
+
+    *   Comes with a very simple REPL.
+
+    *   Lexically scoped and currently closing over environments, not value
+        containers.
+
+    *   Includes a simple rendering system with
+        Language::SX::Renderer::Plain that allows specially formed data
+        structures to be compiled to HTML.
+
+    *   Can do Scheme style quoting ("'"), quasiquoting ("`"), unquoting
+        (",") and splicing unquotes (",@").
+
+  Why would you do something like that?
+    Basically, I wanted something like SXML in Perl. S-Expressions provide
+    an extremely concise way of building tree structures.
+
+  Compilation and Execution
+    It's a long way from a piece of string to running code. These are the
+    steps that are currently made on the way:
+
+    *   First the body is turned into a stream by the reader.
+
+    *   The reader will then create a new document. This new document
+        receives the previously created stream and inflates itself into a
+        tree structure.
+
+    *   To compile the tree structure, the document will create an inflator.
+        The purpose of the inflator is to provide an environment for the
+        tree structure to be compiled in. The structure will be recursively
+        compiled to an inflation body consisting of Perl code that builds
+        callbacks. This inflation body is what should be cached on the
+        filesystem if needed.
+
+    *   When the inflation body is evaluated, it will return an optimised
+        tree of combined code references. The document can then call this
+        code reference (along with providing a suitable environment and user
+        provided arguments) to calculate the result.
+
+THE LANGUAGE
+  General Syntax
+    In general it all looks like Scheme. You call something by putting it in
+    a list:
+
+        (+ 2 3)         ; returns 5
+
+    Code can also be nested:
+
+        (+ (* 2 2) 3)   ; returns 7
+
+    The evaluation order is left-to-right, inner-to-outer. Syntax elements
+    might change the order of argument evaluation or omit their evaluation
+    at all:
+
+        (if (get-something)
+          (do-something) 
+          (do-something-else))
+
+    In the above code "do-something" will only be executed if
+    "get-something" returns true. Otherwise "do-<omsething-else" will be
+    called.
+
+    For a non-syntax application, all elements of the application list are
+    dynamic, including the one at the operator position. This means that
+    this will work as you expect:
+
+        ((if (eq? do :add)
+           +
+           *)
+         2 3)
+
+    For all intents and purposes, "()" and "[]" are synonymous. You can use
+    "[]" instead to make parts stand out visually:
+
+        (let [(x 3)
+              (y 4)]
+          (+ x y))
+
+    Unlike most other Lisps that I know of, you can also specify hashes
+    in-line:
+
+        { x: 4 y: 5 }
+
+    See Language::SX::Library::Quoting for details on how to build complex
+    inline data structures.
+
+  Context
+    Every call in "Language::SX" is made in scalar context. If you really
+    have to call something in list context, see "apply/list" in
+    Language::SX::Library::Data::Functions for information.
+
+  Data Types
+   Numbers
+    Numbers are rather simple:
+
+        (+ 3 -7 3.5 20_000 5.000_001 +7)
+
+   Strings
+    Strings can either be constant like this:
+
+        "foo"
+
+    or contain runtime interpolations like this:
+
+        "foo ${ (+ x y) } bar"
+
+    And, while it might screw up your string-highlighting, you can have
+    strings in interpolated strings too:
+
+        "foo ${ (join ", " names) } bar"
+
+   Regular Expressions
+    Regular expressions have a slightly different syntax in Language::SX
+    than in raw Perl. First, they start with "rx":
+
+        rx/foo/i
+
+    The regular expression is *always* in "x" mode, which means you always
+    have to specify spaces explicitely. There is currently no direct
+    interpolation in regular expressions.
+
+    See Language::SX::Library::Data::Regex for details about regular
+    expression handling.
+
+   Lists
+    Lists in a "Language::SX" context refers to array references. Since
+    there are no non-reference arrays in this system, and I didn't want to
+    write "array reference" all the time, I use both interchangably.
+
+    You can create lists with "list" in Language::SX::Library::Data::Lists
+    or by quoting a "()" or "[]" structure.
+
+   Hashes
+    Hashes are always hash references. You can create them with "hash" in
+    Language::SX::Library::Data::Hashes or with a (quoted or unquoted) "{}"
+    cell.
+
+   Objects
+    You can invoke objects just like functions. You have to pass the method
+    to call in as first argument. These will all call "foo" on "obj":
+
+        (obj :foo ...)
+        (obj "foo" ...)
+        (obj 'foo ...)
+
+    The following will call the method specified in "bar":
+
+        (obj bar ...)
+
+    You can replace the "..." with the arguments you want to pass to the
+    method. Just like in Perl, if the method argument is a code reference,
+    it will be used instead of a method lookup:
+
+        (obj list)
+
+    will return a list containing the object, since list is a builtin
+    function constructing lists.
+
+    Note that Moose type constraints are not treated as objects. They are
+    handled specially so you can say things like:
+
+        (HashRef Int)
+
+    See Language::SX::Library::Types for more information.
+
+   Keywords
+    A keyword is an identifier beginning or ending (but not both) with ":".
+    A keyword can contain letters ("A-Za-z"), numbers ("0-9") and
+    underscores ("_") just like identifiers in Perl. They can additionally
+    also contain hyphens ("-") that will be converted to underscores.
+
+    A keyword is howver just a simple way to write a string. Here are some
+    keywords and their string equivalients:
+
+        :foo        "foo"
+        :foo-bar    "foo_bar"
+        _foo23:     "_foo23"
+        :-foo-      "_foo_"
+
+    The main advantage of keywords over strings is that they are easier to
+    type and read. They are especially useful for method calls and hash key
+    lookups:
+
+        (obj :foo-bar)      ; calls $obj->foo_bar
+
+   Barewords
+    A bareword is anything that didn't match any other token and that
+    doesn't contain either kind of cell ("[]", "()" and "{}"), any quotation
+    character or string delimiter ("'", """, "," or "`"), an "@" sign, a
+    percent sign ("%"), a semi-colon (";") or a hashbang "#". Additionally,
+    barewords cannot start with a number. Here are some bareword examples:
+
+        +
+        foo/bar
+        Foo::Bar
+        baz23
+        _
+        λ
+
+   Booleans
+    Booleans begin with "#". They can be true (1) or false (undefined).
+    Besides the classical "#t" for true and "#f" for false we also allow the
+    following:
+
+        #t          #f
+        #yes        #no
+        #true       #false
+
+    The alternatives can be more readable if you have to specify a lot of
+    them.
+
+  Comments
+    There are two kinds of comments in "Language::SX". The first is a simple
+    line based comment like in Perl, except that the comment character is
+    ";":
+
+        (+ 2 3) ; (this will not be executed)
+
+    Another way to comment out pieces is a cell comment:
+
+        (foo (# bar) baz)
+
+    The above is the same as
+
+        (foo baz)
+
+    with the "(# bar)" being removed because the cell began with "#".
+
+  Modules
+    You can turn a script into a module by using a "module" declaration like
+    this:
+
+        (module (arguments required1 requires2 . optional1 optional2)
+                (exports (some-group: foo bar) baz))
+
+    This has a few implications:
+
+    *   You can import values that are exported by a module. The "exports"
+        declaration has to be in the followinf format:
+
+            (module (exports <spec> ...) ...)
+
+        where "spec" is either a bareword or a group declaration. Groups
+        look like this:
+
+            (module (exports (groupname: foo bar baz) ...) ...)
+
+        This would declare the symbols "foo", "bar" and "baz" to be in the
+        group "groupname".
+
+    *   Your input arguments will now be validated. The format for the
+        "arguments" specification is
+
+            (module (arguments <required> ... . <optional> ...) ...)
+
+        This means that in the following line:
+
+            (module (arguments foo bar . baz qux))
+
+        The values for "foo" and "bar" are required, while "baz" and "qux"
+        are optional.
+
+  Libraries
+    Most of the functionality that is not required across the board is put
+    in libraries. All libraries are organized under the default
+    Language::SX::Library::Core group.
+
+  Variables
+    See Language::SX::Library::ScopeHandling for information on how
+    variables can be declared and changed.
+
+METHODS
+  new
+    Object constructor accepting the following parameters:
+
+    *   default_libraries (optional)
+
+        Initial value for the default_libraries attribute.
+
+    *   document_traits (optional)
+
+        Initial value for the document_traits attribute.
+
+    *   include_path (optional)
+
+        Initial value for the include_path attribute.
+
+    *   reader (optional)
+
+        Initial value for the reader attribute.
+
+    *   use_global_cache (optional)
+
+        Initial value for the use_global_cache attribute.
+
+  all_function_names
+        ->all_function_names()
+
+    Returns a list of all available functions in all libraries. This is
+    mostly for easy introspection like the REPL requires.
+
+  all_libraries
+    Delegation to a generated elements method for the default_libraries
+    attribute.
+
+    Returns all loaded libraries.
+
+  all_syntax_names
+        ->all_syntax_names()
+
+    Returns a list of all syntax elements in all libraries. Mostly used for
+    easy introspection by the REPL.
+
+  clear_reader
+    Clearer for the reader attribute.
+
+  default_libraries
+    Reader for the default_libraries attribute.
+
+  document_traits
+    Reader for the document_traits attribute.
+
+  has_reader
+    Predicate for the reader attribute.
+
+  include_path
+    Reader for the include_path attribute.
+
+  read
+        ->read(SourceType $type, Any $source, Str :$source_name)
+
+    *   Positional Parameters:
+
+        *   SourceType $type
+
+            How to treat the $source argument.
+
+        *   Any $source
+
+            The source of the code to run.
+
+    *   Named Parameters:
+
+        *   Str ":$source_name" (optional)
+
+            Name of the source, e.g. filename.
+
+    Reads a Language::SX::Document from a $source definition.
+
+  reader
+    Reader for the reader attribute.
+
+  run
+        ->run(
+            SourceType $type,
+            Any $source,
+            HashRef :$vars = {},
+            Bool :$persist,
+            Str :$source_name
+        )
+
+    *   Positional Parameters:
+
+        *   SourceType $type
+
+            How to treat the $source argument.
+
+        *   Any $source
+
+            The source of the code to run.
+
+    *   Named Parameters:
+
+        *   Bool ":$persist" (optional)
+
+            If true, the passed in $vars will not be copied but modified
+            instead.
+
+        *   Str ":$source_name" (optional)
+
+            Name of the source, e.g. filename.
+
+        *   HashRef ":$vars" (optional)
+
+            Initial variables for the code.
+
+    Reads a document and runs it.
+
+  use_global_cache
+    Reader for the use_global_cache attribute.
+
+  meta
+    Returns the meta object for "Language::SX" as an instance of
+    Class::MOP::Class::Immutable::Moose::Meta::Class.
+
+ATTRIBUTES
+  default_libraries (required)
+    *   Type Constraint
+
+        LibraryList
+
+    *   Default
+
+        Built during runtime.
+
+    *   Constructor Argument
+
+        "default_libraries"
+
+    *   Associated Methods
+
+        default_libraries, all_libraries
+
+    List of default library objects for new documents. Defaults to
+    Language::SX::Library::Core.
+
+  document_traits (required)
+    *   Type Constraint
+
+        ArrayRef[Str]
+
+    *   Default
+
+        Built during runtime.
+
+    *   Constructor Argument
+
+        "document_traits"
+
+    *   Associated Methods
+
+        document_traits
+
+    Traits that should be applied to new documents.
+
+  include_path (required)
+    *   Type Constraint
+
+        Dir
+
+    *   Default
+
+        Built during runtime.
+
+    *   Constructor Argument
+
+        "include_path"
+
+    *   Associated Methods
+
+        include_path
+
+    Where to look for other "Language::SX" files to load.
+
+  reader (required)
+    *   Type Constraint
+
+        Language::SX::Reader
+
+    *   Default
+
+        Built lazily during runtime.
+
+    *   Constructor Argument
+
+        "reader"
+
+    *   Associated Methods
+
+        reader, has_reader, clear_reader
+
+    The reader object is used to translate code from text to a document.
+
+  use_global_cache (optional)
+    *   Type Constraint
+
+        Bool
+
+    *   Constructor Argument
+
+        "use_global_cache"
+
+    *   Associated Methods
+
+        use_global_cache
+
+    If true, a process global storage for loaded documents will be used
+    instead of recreating documents each time. This can increase speeds
+    drastically in long-running processes.
+
+SEE ALSO
+    *   Language::SX::Library::Core
+
+    *   Language::SX::Renderer::Plain
+
+AUTHORS
+    Robert 'phaylon' Sedlacek, "rs@474.at"
+
+LICENSE AND COPYRIGHT
+    Copyright 2009 (c) Robert Sedlacek (phaylon)
+
+    This library is free software; you can redistribute it and/or modify it
+    under the same terms as Perl 5.10.0.
+

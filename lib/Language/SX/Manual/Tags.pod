@@ -231,6 +231,8 @@ Language::SX::Manual::Tags - Find L<Language::SX> documentation by tag
 
 =over
 
+=item * L<Language::SX/"Data Types">
+
 =item * L<Language::SX::Library::Data::Objects/"object-invocant">
 
 =back
