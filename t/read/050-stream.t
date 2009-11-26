@@ -1,8 +1,8 @@
 #!/usr/bin/env perl
 use strict;
 use warnings;
-use Template::SX::Test      qw( :all );
-use Template::SX::Constants qw( :all );
+use Language::SX::Test      qw( :all );
+use Language::SX::Constants qw( :all );
 use Test::Most;
 
 throws_ok { sx_load '(foo bar 0baz)' } E_SYNTAX, 'unknown token raises syntax error';

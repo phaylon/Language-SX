@@ -1,12 +1,12 @@
 #!/usr/bin/env perl
 use strict;
 use warnings;
-use Template::SX::Constants qw( :all );
-use Template::SX::Test      qw( :all );
+use Language::SX::Constants qw( :all );
+use Language::SX::Test      qw( :all );
 use Test::Most;
 use Data::Dump              qw( pp );
 
-use aliased 'Template::SX::Runtime::Bareword';
+use aliased 'Language::SX::Runtime::Bareword';
 
 my @quoted = (
     [q('23),            23,         'quoted constant evaluates to constant'],

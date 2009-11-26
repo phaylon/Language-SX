@@ -1,14 +1,14 @@
 #!/usr/bin/env perl
 use strict;
 use warnings;
-use Template::SX::Constants qw( :all );
-use Template::SX::Test      qw( :all );
+use Language::SX::Constants qw( :all );
+use Language::SX::Test      qw( :all );
 use Test::Most;
 use utf8;
 
-use Template::SX;
+use Language::SX;
 
-my $sx = Template::SX->new;
+my $sx = Language::SX->new;
 
 my @modifiers = (
     '(define (double n) (* n 2))',

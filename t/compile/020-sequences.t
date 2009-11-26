@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-use Template::SX::Test qw( :all );
+use Language::SX::Test qw( :all );
 use Test::More;
 
 my @seq = (

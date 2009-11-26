@@ -1,8 +1,8 @@
 #!/usr/bin/env perl
 use strict;
 use warnings;
-use Template::SX::Constants qw( :all );
-use Template::SX::Test      qw( :all );
+use Language::SX::Constants qw( :all );
+use Language::SX::Test      qw( :all );
 use Test::Most;
 
 my @try = (

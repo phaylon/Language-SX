@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
-use Template::SX::Test      qw( :all );
-use Template::SX::Constants qw( :all );
+use Language::SX::Test      qw( :all );
+use Language::SX::Constants qw( :all );
 use Test::Most;
 
 throws_ok { sx_read '(foo}' } E_SYNTAX, 'wrong cell closer exception';
@@ -16,8 +16,8 @@ is $@->location->{char}, 1, 'correct char number';
 do {
     my $doc = sx_read '(foo) [foo]';
     is $doc->node_count, 2, 'document contains two nodes';
-    isa_ok $doc->get_node(0), 'Template::SX::Document::Cell::Application', 'normally parenthesized cell';
-    isa_ok $doc->get_node(1), 'Template::SX::Document::Cell::Application', 'bracketed cell';
+    isa_ok $doc->get_node(0), 'Language::SX::Document::Cell::Application', 'normally parenthesized cell';
+    isa_ok $doc->get_node(1), 'Language::SX::Document::Cell::Application', 'bracketed cell';
 };
 
 done_testing;

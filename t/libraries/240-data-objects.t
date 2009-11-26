@@ -2,8 +2,8 @@
 use strict;
 use warnings;
 use MooseX::Declare;
-use Template::SX::Test      qw( :all );
-use Template::SX::Constants qw( :all );
+use Language::SX::Test      qw( :all );
+use Language::SX::Constants qw( :all );
 use Test::Most;
 
 role TestRole { }
@@ -20,7 +20,7 @@ my @should_work = (
     ['(object? `foo 3 `bar)',                   undef,                              'object? with mixed arguments'],
     ['(object? `x `y `z)',                      1,                                  'object? with all-object arguments'],
 
-    ['(class-of `foo)',                         'Template::SX::Runtime::Bareword',  'class-of bareword'],
+    ['(class-of `foo)',                         'Language::SX::Runtime::Bareword',  'class-of bareword'],
 
     ['((object-invocant `x) :value)',           'x',                                'object-invocant with bareword argument'],
 

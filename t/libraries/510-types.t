@@ -1,8 +1,8 @@
 #!/usr/bin/env perl
 use strict;
 use warnings;
-use Template::SX::Test          qw( :all );
-use Template::SX::Constants     qw( :all );
+use Language::SX::Test          qw( :all );
+use Language::SX::Constants     qw( :all );
 use MooseX::Types::Moose        qw( Str Int ArrayRef HashRef );
 use MooseX::Types::Path::Class  qw( File );
 use Path::Class                 qw( file );

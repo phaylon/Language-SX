@@ -1,8 +1,8 @@
 #!/usr/bin/env perl
 use strict;
 use warnings;
-use Template::SX::Constants qw( :all );
-use Template::SX::Test      qw( :all );
+use Language::SX::Constants qw( :all );
+use Language::SX::Test      qw( :all );
 use Test::Most;
 
 is sx_run('"foo ${bar} baz"', { bar => 23 }), 'foo 23 baz', 'simple string interpolation';

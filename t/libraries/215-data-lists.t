@@ -3,8 +3,8 @@ use utf8;
 use strict;
 use warnings;
 use MooseX::Declare;
-use Template::SX::Test      qw( :all );
-use Template::SX::Constants qw( :all );
+use Language::SX::Test      qw( :all );
+use Language::SX::Constants qw( :all );
 use Test::Most;
 
 class TestObj { 

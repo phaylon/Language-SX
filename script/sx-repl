@@ -5,7 +5,7 @@ use encoding::stdio ':locale';
 
 use FindBin;
 use lib "$FindBin::Bin/../lib";
-use Template::SX::REPL;
+use Language::SX::REPL;
 
-my $repl = Template::SX::REPL->new;
+my $repl = Language::SX::REPL->new;
 $repl->run;

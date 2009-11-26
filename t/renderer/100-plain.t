@@ -1,9 +1,9 @@
 #!/usr/bin/env perl
 use strict;
 use warnings;
-use aliased 'Template::SX::Renderer::Plain';
-use Template::SX::Test      qw( :all );
-use Template::SX::Constants qw( :all );
+use aliased 'Language::SX::Renderer::Plain';
+use Language::SX::Test      qw( :all );
+use Language::SX::Constants qw( :all );
 use Test::Most;
 
 my @should_work = (

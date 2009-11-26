@@ -2,8 +2,8 @@
 use utf8;
 use strict;
 use warnings;
-use Template::SX::Test      qw( :all );
-use Template::SX::Constants qw( :all );
+use Language::SX::Test      qw( :all );
+use Language::SX::Constants qw( :all );
 use Test::Most;
 use Regexp::Compare         qw( is_less_or_equal );
 
